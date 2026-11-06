@@ -1,0 +1,11 @@
+#!/bin/sh
+export PATH="$HOME/.local/share/pnpm/bin:$HOME/.nix-profile/bin:$PATH"
+
+echo "☀️ Running SunLint on staged files before commit..."
+if command -v sunlint >/dev/null 2>&1; then
+  sunlint --all --staged-files --input=.
+else
+  echo "⚠️ SunLint binary not found in PATH."
+  echo "Please ensure sunlint is installed or accessible at \$HOME/.local/share/pnpm/bin/sunlint."
+  exit 1
+fi

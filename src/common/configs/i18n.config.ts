@@ -7,7 +7,8 @@ import {
   QueryResolver,
 } from 'nestjs-i18n';
 
-const baseDir = fileURLToPath(new URL('..', import.meta.url));
+const baseDir = fileURLToPath(new URL('../..', import.meta.url));
+const projectRoot = process.cwd();
 
 export const i18nConfig: I18nOptions = {
   fallbackLanguage: 'en',
@@ -19,6 +20,7 @@ export const i18nConfig: I18nOptions = {
     path: path.join(baseDir, 'i18n/'),
     watch: true,
   },
+  typesOutputPath: path.join(projectRoot, 'src/generated/i18n.generated.ts'),
   resolvers: [
     new QueryResolver(['lang', 'l']),
     new HeaderResolver(['x-custom-lang']),

@@ -42,3 +42,6 @@ coverage
 .direnv/
 *.tsbuildinfo
 *.local*
+prisma-8.md
+migrations
+docs

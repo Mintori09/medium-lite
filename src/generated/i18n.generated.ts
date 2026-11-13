@@ -5,9 +5,33 @@
 import type { Path } from "nestjs-i18n";
 /* prettier-ignore */
 export type I18nTranslations = {
-    "app": {
-        "hello": string;
-        "greeting": string;
+    "auth": {
+        "REGISTER_SUCCESS": string;
+        "EMAIL_EXISTS": string;
+        "USERNAME_EXISTS": string;
+        "INVALID_CREDENTIALS": string;
+        "ACCOUNT_DISABLED": string;
+        "REFRESH_TOKEN_INVALID": string;
+        "USER_INACTIVE": string;
+        "LOGOUT_SUCCESS": string;
+        "USER_NOT_FOUND": string;
+        "TOKEN_MISSING": string;
+        "TOKEN_REVOKED": string;
+        "TOKEN_EXPIRED": string;
+        "USER_INACTIVE_OR_NOT_FOUND": string;
+        "REFRESH_TOKEN_MISSING": string;
+    };
+    "validation": {
+        "REQUIRED": string;
+        "INVALID_TYPE": string;
+        "INVALID_EMAIL": string;
+        "INVALID_URL": string;
+        "INVALID_FORMAT": string;
+        "TOO_SHORT": string;
+        "TOO_LONG": string;
+        "UNRECOGNIZED_KEYS": string;
+        "INVALID_VALUE": string;
+        "INVALID": string;
     };
 };
 /* prettier-ignore */

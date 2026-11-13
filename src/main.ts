@@ -1,13 +1,13 @@
 import { NestFactory } from '@nestjs/core';
-import { ZodValidationPipe } from 'nestjs-zod';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
 import { setupSwagger } from './common/configs/swagger.config.js';
 import { env } from './common/configs/env.config.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
 
-  app.useGlobalPipes(new ZodValidationPipe());
   app.enableShutdownHooks();
   setupSwagger(app);
 

@@ -3,7 +3,8 @@ import dotenv from 'dotenv';
 import { expand } from 'dotenv-expand';
 import type { JwtExpiresIn } from '../types/jwt.type.js';
 
-expand(dotenv.config());
+const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
+expand(dotenv.config({ path: envFile }));
 
 export const envSchema = z.object({
   // Server
@@ -58,11 +59,17 @@ export const envSchema = z.object({
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
+  const errorMsg = z.prettifyError(parsedEnv.error);
   console.error(
     '\x1b[31m[Error]\x1b[0m',
     ' Invalid environment variables:',
-    z.prettifyError(parsedEnv.error),
+    errorMsg,
   );
+  if (process.env.NODE_ENV === 'test') {
+    throw new Error(
+      `Invalid environment variables in test environment:\n${errorMsg}`,
+    );
+  }
   process.exit(1);
 }
 

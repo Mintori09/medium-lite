@@ -38,6 +38,7 @@ coverage
 .env
 .env.*
 !.env.example
+!.env.test
 .envrc
 .direnv/
 *.tsbuildinfo

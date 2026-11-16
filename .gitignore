@@ -46,3 +46,7 @@ coverage
 prisma-8.md
 migrations
 docs
+
+# Local uploads
+public/uploads/
+public/uploads-test/

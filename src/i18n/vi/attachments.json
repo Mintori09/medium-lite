@@ -1,0 +1,4 @@
+{
+  "INVALID_FILE_TYPE": "Định dạng ảnh đại diện không hợp lệ. Chỉ chấp nhận: image/jpeg, image/png, image/webp",
+  "INVALID_FILE_CONTENT": "Nội dung tệp ảnh không hợp lệ"
+}

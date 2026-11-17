@@ -1,0 +1,5 @@
+{
+  "USER_NOT_FOUND": "Profile not found",
+  "CANNOT_FOLLOW_SELF": "You cannot follow yourself",
+  "CANNOT_UNFOLLOW_SELF": "You cannot unfollow yourself"
+}

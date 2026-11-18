@@ -1,0 +1,12 @@
+{
+  "REQUIRED": "{field} là bắt buộc",
+  "INVALID_TYPE": "{field} không đúng kiểu dữ liệu",
+  "INVALID_EMAIL": "Email không hợp lệ",
+  "INVALID_URL": "URL không hợp lệ",
+  "INVALID_FORMAT": "{field} không đúng định dạng",
+  "TOO_SHORT": "{field} phải có ít nhất {minimum} ký tự",
+  "TOO_LONG": "{field} không được vượt quá {maximum} ký tự",
+  "UNRECOGNIZED_KEYS": "Các trường không hợp lệ: {keys}",
+  "INVALID_VALUE": "{field} có giá trị không hợp lệ",
+  "INVALID": "{field} không hợp lệ"
+}

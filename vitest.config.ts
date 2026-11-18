@@ -1,4 +1,7 @@
+import dotenv from 'dotenv';
 import { defineConfig } from 'vitest/config';
+
+dotenv.config({ path: '.env.test', override: true });
 
 export default defineConfig({
   // Resolves the path aliases declared in tsconfig.json, including the ones
@@ -7,6 +10,6 @@ export default defineConfig({
   test: {
     globals: true,
     root: './',
-    include: ['**/*.spec.ts'],
+    include: ['src/**/*.spec.ts'],
   },
 });

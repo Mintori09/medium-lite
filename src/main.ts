@@ -1,13 +1,17 @@
 import { NestFactory } from '@nestjs/core';
+import cookieParser from 'cookie-parser';
 import { AppModule } from './app.module.js';
-import { setupSwagger } from './config/swagger.config.js';
+import { setupSwagger } from './common/configs/swagger.config.js';
+import { env } from './common/configs/env.config.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  app.use(cookieParser());
 
+  app.enableShutdownHooks();
   setupSwagger(app);
 
-  const port = process.env.PORT ?? 3000;
+  const port = Number(env.PORT);
   await app.listen(port);
   console.log(`Server running on: http://localhost:${port}`);
   console.log(`Swagger docs available at: http://localhost:${port}/api`);

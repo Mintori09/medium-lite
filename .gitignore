@@ -38,7 +38,11 @@ coverage
 .env
 .env.*
 !.env.example
+!.env.test
 .envrc
 .direnv/
 *.tsbuildinfo
 *.local*
+prisma-8.md
+migrations
+docs

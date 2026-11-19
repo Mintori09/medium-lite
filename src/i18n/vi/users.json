@@ -1,4 +1,6 @@
 {
   "USER_NOT_FOUND": "Không tìm thấy người dùng",
-  "DUPLICATE_FIELD": "Email hoặc tên đăng nhập đã tồn tại"
+  "DUPLICATE_FIELD": "Email hoặc tên đăng nhập đã tồn tại",
+  "CURRENT_PASSWORD_REQUIRED": "Cần nhập mật khẩu hiện tại để đổi mật khẩu",
+  "INVALID_CURRENT_PASSWORD": "Mật khẩu hiện tại không chính xác"
 }

@@ -1,4 +1,10 @@
+import {
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import bcrypt from 'bcrypt';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { PASSWORD_HASH_ROUNDS } from '../../common/constants/auth.constants.js';
 import { UsersService } from './users.service.js';
 import { db } from '../../common/database/db.js';
 import type { Models } from '../../common/database/contract.d.js';
@@ -37,6 +43,7 @@ describe('UsersService', () => {
     deleteFileByPath: ReturnType<typeof vi.fn>;
     deleteAvatarFiles: ReturnType<typeof vi.fn>;
   };
+  let mockRedisService: { del: ReturnType<typeof vi.fn> };
   let mockI18n: { translate: ReturnType<typeof vi.fn> };
 
   const mockUser: Models.public_User = {
@@ -63,11 +70,15 @@ describe('UsersService', () => {
       deleteFileByPath: vi.fn(),
       deleteAvatarFiles: vi.fn(),
     };
+    mockRedisService = {
+      del: vi.fn().mockResolvedValue(1),
+    };
     mockI18n = {
       translate: vi.fn((key: string) => key),
     };
     service = new UsersService(
       mockAttachmentsService as never,
+      mockRedisService as never,
       mockI18n as never,
     );
   });
@@ -374,6 +385,90 @@ describe('UsersService', () => {
       await expect(
         service.updateUser('user-123', { bio: 'updated' }),
       ).rejects.toThrow('auth.USERNAME_EXISTS');
+    });
+
+    it('should throw BadRequestException when changing password without currentPassword', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+
+      await expect(
+        service.updateUser('user-123', { password: 'NewStrongPass123!' }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(mockRedisService.del).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when currentPassword is incorrect', async () => {
+      const currentPasswordHash = await bcrypt.hash(
+        'OldStrongPass123!',
+        PASSWORD_HASH_ROUNDS,
+      );
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce({
+        ...mockUser,
+        passwordHash: currentPasswordHash,
+      });
+
+      await expect(
+        service.updateUser('user-123', {
+          currentPassword: 'WrongPassword123!',
+          password: 'NewStrongPass123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(mockRedisService.del).not.toHaveBeenCalled();
+    });
+
+    it('should hash new password, update user, and delete refresh token from Redis when currentPassword matches', async () => {
+      const currentPasswordHash = await bcrypt.hash(
+        'OldStrongPass123!',
+        PASSWORD_HASH_ROUNDS,
+      );
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce({
+        ...mockUser,
+        passwordHash: currentPasswordHash,
+      });
+
+      const txUpdate = vi.fn().mockResolvedValue({
+        ...mockUser,
+        passwordHash: 'new_hashed_pw',
+      });
+      vi.mocked(db.transaction).mockImplementation(async (cb) =>
+        cb({
+          orm: { public: { User: { where: () => ({ update: txUpdate }) } } },
+        } as never),
+      );
+
+      await service.updateUser('user-123', {
+        currentPassword: 'OldStrongPass123!',
+        password: 'NewStrongPass123!',
+      });
+
+      const updateArg = txUpdate.mock.calls[0][0] as { passwordHash: string };
+      expect(updateArg.passwordHash).toBeDefined();
+      expect(
+        await bcrypt.compare('NewStrongPass123!', updateArg.passwordHash),
+      ).toBe(true);
+      expect(mockRedisService.del).toHaveBeenCalledWith(
+        'auth:refresh_token:user-123',
+      );
+    });
+
+    it('should not delete refresh token from Redis when password is not changed', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      const txUpdate = vi.fn().mockResolvedValue({
+        ...mockUser,
+        bio: 'Updated bio',
+      });
+      vi.mocked(db.transaction).mockImplementation(async (cb) =>
+        cb({
+          orm: { public: { User: { where: () => ({ update: txUpdate }) } } },
+        } as never),
+      );
+
+      await service.updateUser('user-123', { bio: 'Updated bio' });
+
+      expect(mockRedisService.del).not.toHaveBeenCalled();
     });
   });
 });

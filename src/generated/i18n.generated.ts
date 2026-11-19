@@ -33,6 +33,8 @@ export type I18nTranslations = {
     "users": {
         "USER_NOT_FOUND": string;
         "DUPLICATE_FIELD": string;
+        "CURRENT_PASSWORD_REQUIRED": string;
+        "INVALID_CURRENT_PASSWORD": string;
     };
     "validation": {
         "REQUIRED": string;

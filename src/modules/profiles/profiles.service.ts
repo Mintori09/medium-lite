@@ -26,7 +26,7 @@ export class ProfilesService {
     username: string,
   ): Promise<UserRecord> {
     const user = await this.usersService.findByUsername(username.trim());
-    if (!user) {
+    if (!user || !user.isActive) {
       throw new NotFoundException(this.t('profiles.USER_NOT_FOUND'));
     }
     return user;

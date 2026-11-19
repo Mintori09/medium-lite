@@ -1,15 +1,22 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
   NotFoundException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import bcrypt from 'bcrypt';
 import { I18nContext, I18nService } from 'nestjs-i18n';
+import {
+  PASSWORD_HASH_ROUNDS,
+  getRefreshTokenKey,
+} from '../../common/constants/auth.constants.js';
 import { db } from '../../common/database/db.js';
 import type { Models } from '../../common/database/contract.d.js';
 import { getUniqueViolationConstraint } from '../../common/utils/database-error.util.js';
 import type { I18nTranslations } from '../../generated/i18n.generated.js';
+import { RedisService } from '../../redis/redis.service.js';
 import type { UploadedAvatarFile } from '../attachments/attachments.constants.js';
 import {
   AttachmentsService,
@@ -26,6 +33,7 @@ export class UsersService {
 
   constructor(
     private readonly attachmentsService: AttachmentsService,
+    private readonly redisService: RedisService,
     private readonly i18n: I18nService<I18nTranslations>,
   ) {}
 
@@ -113,9 +121,24 @@ export class UsersService {
       }
     }
 
-    const passwordHash = dto.password
-      ? await bcrypt.hash(dto.password, 10)
-      : undefined;
+    let passwordHash: string | undefined;
+    if (dto.password !== undefined) {
+      if (!dto.currentPassword) {
+        throw new BadRequestException(this.t('users.CURRENT_PASSWORD_REQUIRED'));
+      }
+
+      const isCurrentPasswordValid = await bcrypt.compare(
+        dto.currentPassword,
+        currentUser.passwordHash,
+      );
+      if (!isCurrentPasswordValid) {
+        throw new UnauthorizedException(
+          this.t('users.INVALID_CURRENT_PASSWORD'),
+        );
+      }
+
+      passwordHash = await bcrypt.hash(dto.password, PASSWORD_HASH_ROUNDS);
+    }
 
     let preparedAvatar: PreparedAvatar | null = null;
     if (avatarFile) {
@@ -177,6 +200,10 @@ export class UsersService {
       }
 
       throw error;
+    }
+
+    if (passwordHash !== undefined) {
+      await this.redisService.del(getRefreshTokenKey(userId));
     }
 
     if (oldAvatarFilesToDelete.length > 0) {

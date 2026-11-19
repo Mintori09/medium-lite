@@ -120,4 +120,37 @@ describe('ProfilesService', () => {
       NotFoundException,
     );
   });
+
+  it('should throw NotFoundException when getting profile of an inactive user', async () => {
+    vi.mocked(mockUsersService.findByUsername).mockResolvedValue({
+      ...targetUser,
+      isActive: false,
+    });
+
+    await expect(service.getProfile('target_user', 'user-1')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('should throw NotFoundException when following an inactive user', async () => {
+    vi.mocked(mockUsersService.findByUsername).mockResolvedValue({
+      ...targetUser,
+      isActive: false,
+    });
+
+    await expect(service.followUser('target_user', 'user-1')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('should throw NotFoundException when unfollowing an inactive user', async () => {
+    vi.mocked(mockUsersService.findByUsername).mockResolvedValue({
+      ...targetUser,
+      isActive: false,
+    });
+
+    await expect(
+      service.unfollowUser('target_user', 'user-1'),
+    ).rejects.toThrow(NotFoundException);
+  });
 });

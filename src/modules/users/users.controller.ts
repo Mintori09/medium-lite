@@ -72,6 +72,11 @@ export class UsersController {
       properties: {
         email: { type: 'string', format: 'email', example: 'user@example.com' },
         username: { type: 'string', example: 'john_doe' },
+        currentPassword: {
+          type: 'string',
+          minLength: 1,
+          example: 'OldStrongPass123!',
+        },
         password: { type: 'string', minLength: 12, example: 'NewStrongPass123!' },
         bio: { type: 'string', nullable: true, example: 'Software Engineer' },
         image: {

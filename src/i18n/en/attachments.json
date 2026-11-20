@@ -1,0 +1,4 @@
+{
+  "INVALID_FILE_TYPE": "Invalid avatar file type. Allowed: image/jpeg, image/png, image/webp",
+  "INVALID_FILE_CONTENT": "Invalid image file content"
+}

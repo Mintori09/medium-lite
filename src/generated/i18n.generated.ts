@@ -5,6 +5,10 @@
 import type { Path } from "nestjs-i18n";
 /* prettier-ignore */
 export type I18nTranslations = {
+    "attachments": {
+        "INVALID_FILE_TYPE": string;
+        "INVALID_FILE_CONTENT": string;
+    };
     "auth": {
         "REGISTER_SUCCESS": string;
         "EMAIL_EXISTS": string;
@@ -20,6 +24,17 @@ export type I18nTranslations = {
         "TOKEN_EXPIRED": string;
         "USER_INACTIVE_OR_NOT_FOUND": string;
         "REFRESH_TOKEN_MISSING": string;
+    };
+    "profiles": {
+        "USER_NOT_FOUND": string;
+        "CANNOT_FOLLOW_SELF": string;
+        "CANNOT_UNFOLLOW_SELF": string;
+    };
+    "users": {
+        "USER_NOT_FOUND": string;
+        "DUPLICATE_FIELD": string;
+        "CURRENT_PASSWORD_REQUIRED": string;
+        "INVALID_CURRENT_PASSWORD": string;
     };
     "validation": {
         "REQUIRED": string;

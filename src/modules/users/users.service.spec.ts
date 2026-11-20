@@ -1,4 +1,10 @@
+import {
+  BadRequestException,
+  UnauthorizedException,
+} from '@nestjs/common';
+import bcrypt from 'bcrypt';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { PASSWORD_HASH_ROUNDS } from '../../common/constants/auth.constants.js';
 import { UsersService } from './users.service.js';
 import { db } from '../../common/database/db.js';
 import type { Models } from '../../common/database/contract.d.js';
@@ -22,12 +28,23 @@ vi.mock('../../common/database/db.js', () => {
         },
       },
       query: vi.fn(),
+      transaction: vi.fn(),
     },
   };
 });
 
 describe('UsersService', () => {
   let service: UsersService;
+  let mockAttachmentsService: {
+    prepareAvatar: ReturnType<typeof vi.fn>;
+    writePreparedFile: ReturnType<typeof vi.fn>;
+    replaceUserAvatarInTx: ReturnType<typeof vi.fn>;
+    clearUserAvatarsInTx: ReturnType<typeof vi.fn>;
+    deleteFileByPath: ReturnType<typeof vi.fn>;
+    deleteAvatarFiles: ReturnType<typeof vi.fn>;
+  };
+  let mockRedisService: { del: ReturnType<typeof vi.fn> };
+  let mockI18n: { translate: ReturnType<typeof vi.fn> };
 
   const mockUser: Models.public_User = {
     id: 'user-123',
@@ -39,11 +56,31 @@ describe('UsersService', () => {
     isActive: true,
     createdAt: new Date('2026-01-01'),
     updatedAt: new Date('2026-01-01'),
+    followers: [],
+    following: [],
   };
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new UsersService();
+    mockAttachmentsService = {
+      prepareAvatar: vi.fn(),
+      writePreparedFile: vi.fn(),
+      replaceUserAvatarInTx: vi.fn(),
+      clearUserAvatarsInTx: vi.fn(),
+      deleteFileByPath: vi.fn(),
+      deleteAvatarFiles: vi.fn(),
+    };
+    mockRedisService = {
+      del: vi.fn().mockResolvedValue(1),
+    };
+    mockI18n = {
+      translate: vi.fn((key: string) => key),
+    };
+    service = new UsersService(
+      mockAttachmentsService as never,
+      mockRedisService as never,
+      mockI18n as never,
+    );
   });
 
   describe('findById', () => {
@@ -69,33 +106,31 @@ describe('UsersService', () => {
   });
 
   describe('findByEmail', () => {
-    it('should return a user when found by email', async () => {
-      const mockFirst = vi.fn().mockResolvedValue(mockUser);
+    const mockUserWhere = (field: 'email' | 'username', value: unknown) => {
+      const mockFirst = vi.fn().mockResolvedValue(value);
+      const mockField = { eq: vi.fn() };
       vi.mocked(db.orm.public.User.where).mockImplementation(
         (predicate: any) => {
-          // Execute the predicate to exercise u.email.eq(email)
-          const mockField = { eq: vi.fn() };
-          predicate({ email: mockField });
-          expect(mockField.eq).toHaveBeenCalledWith('user@example.com');
+          predicate({ [field]: mockField });
           return { first: mockFirst } as any;
         },
       );
+      return { mockFirst, mockField };
+    };
+
+    it('should return a user when found by email', async () => {
+      const { mockFirst, mockField } = mockUserWhere('email', mockUser);
 
       const result = await service.findByEmail('user@example.com');
 
       expect(db.orm.public.User.where).toHaveBeenCalled();
+      expect(mockField.eq).toHaveBeenCalledWith('user@example.com');
       expect(mockFirst).toHaveBeenCalled();
       expect(result).toEqual(mockUser);
     });
 
     it('should return null when user with email is not found', async () => {
-      const mockFirst = vi.fn().mockResolvedValue(undefined as never);
-      vi.mocked(db.orm.public.User.where).mockImplementation(
-        (predicate: any) => {
-          predicate({ email: { eq: vi.fn() } });
-          return { first: mockFirst } as any;
-        },
-      );
+      mockUserWhere('email', undefined);
 
       const result = await service.findByEmail('notfound@example.com');
 
@@ -104,32 +139,31 @@ describe('UsersService', () => {
   });
 
   describe('findByUsername', () => {
-    it('should return a user when found by username', async () => {
-      const mockFirst = vi.fn().mockResolvedValue(mockUser);
+    const mockUserWhere = (value: unknown) => {
+      const mockFirst = vi.fn().mockResolvedValue(value);
+      const mockField = { eq: vi.fn() };
       vi.mocked(db.orm.public.User.where).mockImplementation(
         (predicate: any) => {
-          const mockField = { eq: vi.fn() };
           predicate({ username: mockField });
-          expect(mockField.eq).toHaveBeenCalledWith('testuser');
           return { first: mockFirst } as any;
         },
       );
+      return { mockFirst, mockField };
+    };
+
+    it('should return a user when found by username', async () => {
+      const { mockFirst, mockField } = mockUserWhere(mockUser);
 
       const result = await service.findByUsername('testuser');
 
       expect(db.orm.public.User.where).toHaveBeenCalled();
+      expect(mockField.eq).toHaveBeenCalledWith('testuser');
       expect(mockFirst).toHaveBeenCalled();
       expect(result).toEqual(mockUser);
     });
 
     it('should return null when user with username is not found', async () => {
-      const mockFirst = vi.fn().mockResolvedValue(null as never);
-      vi.mocked(db.orm.public.User.where).mockImplementation(
-        (predicate: any) => {
-          predicate({ username: { eq: vi.fn() } });
-          return { first: mockFirst } as any;
-        },
-      );
+      mockUserWhere(null);
 
       const result = await service.findByUsername('notfound');
 
@@ -212,6 +246,229 @@ describe('UsersService', () => {
       ]);
       expect(result.bio).toBeNull();
       expect(result.image).toBeNull();
+    });
+  });
+
+  describe('updateUser', () => {
+    const createPreparedAvatar = () => ({
+      fileName: 'new.png',
+      filePath: '/tmp/new.png',
+      url: '/uploads/new.png',
+      mimeType: 'image/png',
+      size: 100,
+    });
+
+    it('should throw NotFoundException if user does not exist', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValue(null as never);
+      await expect(
+        service.updateUser('missing', { bio: 'new' }),
+      ).rejects.toThrow('users.USER_NOT_FOUND');
+    });
+
+    it('should throw ConflictException if email is taken by another user', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      vi.spyOn(service, 'findByEmail').mockResolvedValueOnce({
+        ...mockUser,
+        id: 'other-user',
+      });
+
+      await expect(
+        service.updateUser('user-123', { email: 'taken@example.com' }),
+      ).rejects.toThrow('auth.EMAIL_EXISTS');
+    });
+
+    it('should throw ConflictException if username is taken by another user', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      vi.spyOn(service, 'findByUsername').mockResolvedValueOnce({
+        ...mockUser,
+        id: 'other-user',
+      });
+
+      await expect(
+        service.updateUser('user-123', { username: 'takenuser' }),
+      ).rejects.toThrow('auth.USERNAME_EXISTS');
+    });
+
+    it('should update user with avatar upload and delete old avatar files', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      const prepared = createPreparedAvatar();
+      mockAttachmentsService.prepareAvatar.mockReturnValue(prepared);
+      mockAttachmentsService.replaceUserAvatarInTx.mockResolvedValue({
+        attachment: { url: '/uploads/new.png' },
+        oldFileNames: ['old.png'],
+      });
+
+      const txUpdate = vi.fn().mockResolvedValue({
+        ...mockUser,
+        image: '/uploads/new.png',
+      });
+      vi.mocked(db.transaction).mockImplementation(async (cb) =>
+        cb({ orm: { public: { User: { where: () => ({ update: txUpdate }) } } } } as never),
+      );
+
+      const res = await service.updateUser(
+        'user-123',
+        { bio: 'updated' },
+        { buffer: Buffer.from('x'), mimetype: 'image/png', size: 100 } as never,
+      );
+
+      expect(mockAttachmentsService.writePreparedFile).toHaveBeenCalledWith(prepared);
+      expect(mockAttachmentsService.deleteAvatarFiles).toHaveBeenCalledWith(['old.png']);
+      expect(res.user.image).toBe('/uploads/new.png');
+      expect((res.user as Record<string, unknown>).passwordHash).toBeUndefined();
+    });
+
+    it('should clear avatars when image is set to null without uploading a file', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      mockAttachmentsService.clearUserAvatarsInTx.mockResolvedValue(['old.png']);
+
+      const txUpdate = vi.fn().mockResolvedValue({
+        ...mockUser,
+        image: null,
+      });
+      vi.mocked(db.transaction).mockImplementation(async (cb) =>
+        cb({ orm: { public: { User: { where: () => ({ update: txUpdate }) } } } } as never),
+      );
+
+      const res = await service.updateUser('user-123', { image: null });
+
+      expect(mockAttachmentsService.clearUserAvatarsInTx).toHaveBeenCalled();
+      expect(mockAttachmentsService.deleteAvatarFiles).toHaveBeenCalledWith(['old.png']);
+      expect(res.user.image).toBeNull();
+    });
+
+    it('should allow updating when email and username are unchanged', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      const findByEmailSpy = vi.spyOn(service, 'findByEmail');
+      const findByUsernameSpy = vi.spyOn(service, 'findByUsername');
+      const txUpdate = vi.fn().mockResolvedValue(mockUser);
+      vi.mocked(db.transaction).mockImplementation(async (cb) =>
+        cb({ orm: { public: { User: { where: () => ({ update: txUpdate }) } } } } as never),
+      );
+
+      await service.updateUser('user-123', {
+        email: mockUser.email,
+        username: mockUser.username,
+      });
+
+      expect(findByEmailSpy).not.toHaveBeenCalled();
+      expect(findByUsernameSpy).not.toHaveBeenCalled();
+    });
+
+    it('should cleanup prepared avatar and map unique violation errors', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      const prepared = createPreparedAvatar();
+      mockAttachmentsService.prepareAvatar.mockReturnValue(prepared);
+      vi.mocked(db.transaction).mockRejectedValue({
+        sqlState: '23505',
+        constraint: 'User_email_key',
+      });
+
+      await expect(
+        service.updateUser(
+          'user-123',
+          {},
+          { buffer: Buffer.from('x'), mimetype: 'image/png', size: 100 } as never,
+        ),
+      ).rejects.toThrow('auth.EMAIL_EXISTS');
+
+      expect(mockAttachmentsService.deleteFileByPath).toHaveBeenCalledWith('/tmp/new.png');
+    });
+
+    it('should map username unique violation to ConflictException', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      vi.mocked(db.transaction).mockRejectedValue({
+        sqlState: '23505',
+        constraint: 'User_username_key',
+      });
+
+      await expect(
+        service.updateUser('user-123', { bio: 'updated' }),
+      ).rejects.toThrow('auth.USERNAME_EXISTS');
+    });
+
+    it('should throw BadRequestException when changing password without currentPassword', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+
+      await expect(
+        service.updateUser('user-123', { password: 'NewStrongPass123!' }),
+      ).rejects.toThrow(BadRequestException);
+
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(mockRedisService.del).not.toHaveBeenCalled();
+    });
+
+    it('should throw UnauthorizedException when currentPassword is incorrect', async () => {
+      const currentPasswordHash = await bcrypt.hash(
+        'OldStrongPass123!',
+        PASSWORD_HASH_ROUNDS,
+      );
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce({
+        ...mockUser,
+        passwordHash: currentPasswordHash,
+      });
+
+      await expect(
+        service.updateUser('user-123', {
+          currentPassword: 'WrongPassword123!',
+          password: 'NewStrongPass123!',
+        }),
+      ).rejects.toThrow(UnauthorizedException);
+
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(mockRedisService.del).not.toHaveBeenCalled();
+    });
+
+    it('should hash new password, update user, and delete refresh token from Redis when currentPassword matches', async () => {
+      const currentPasswordHash = await bcrypt.hash(
+        'OldStrongPass123!',
+        PASSWORD_HASH_ROUNDS,
+      );
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce({
+        ...mockUser,
+        passwordHash: currentPasswordHash,
+      });
+
+      const txUpdate = vi.fn().mockResolvedValue({
+        ...mockUser,
+        passwordHash: 'new_hashed_pw',
+      });
+      vi.mocked(db.transaction).mockImplementation(async (cb) =>
+        cb({
+          orm: { public: { User: { where: () => ({ update: txUpdate }) } } },
+        } as never),
+      );
+
+      await service.updateUser('user-123', {
+        currentPassword: 'OldStrongPass123!',
+        password: 'NewStrongPass123!',
+      });
+
+      const updateArg = txUpdate.mock.calls[0][0] as { passwordHash: string };
+      expect(updateArg.passwordHash).toBeDefined();
+      expect(
+        await bcrypt.compare('NewStrongPass123!', updateArg.passwordHash),
+      ).toBe(true);
+      expect(mockRedisService.del).toHaveBeenCalledWith(
+        'auth:refresh_token:user-123',
+      );
+    });
+
+    it('should not delete refresh token from Redis when password is not changed', async () => {
+      vi.mocked(db.orm.public.User.first).mockResolvedValueOnce(mockUser);
+      const txUpdate = vi.fn().mockResolvedValue({
+        ...mockUser,
+        bio: 'Updated bio',
+      });
+      vi.mocked(db.transaction).mockImplementation(async (cb) =>
+        cb({
+          orm: { public: { User: { where: () => ({ update: txUpdate }) } } },
+        } as never),
+      );
+
+      await service.updateUser('user-123', { bio: 'Updated bio' });
+
+      expect(mockRedisService.del).not.toHaveBeenCalled();
     });
   });
 });

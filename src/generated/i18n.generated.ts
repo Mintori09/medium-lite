@@ -5,6 +5,12 @@
 import type { Path } from "nestjs-i18n";
 /* prettier-ignore */
 export type I18nTranslations = {
+    "articles": {
+        "notFound": string;
+        "forbiddenUpdate": string;
+        "forbiddenDelete": string;
+        "emptyUpdate": string;
+    };
     "attachments": {
         "INVALID_FILE_TYPE": string;
         "INVALID_FILE_CONTENT": string;

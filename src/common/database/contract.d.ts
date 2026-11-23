@@ -23,9 +23,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'d539de5babc558d439597ea9dbd87340f09dac5ec010d154002300c9b058742e'>;
+  StorageHashBase<'380cafc8e1f425119b6786013318ca37365d2fbe1545c40fd27ca7167aa7d6a5'>;
 export type ExecutionHash =
-  ExecutionHashBase<'001f8b835d4563885a9b28ee66779f5d6a414240162b075784139119c363d952'>;
+  ExecutionHashBase<'aed7900167160f6c32c932bced5c6b92fc4bf22da04f5ae5eec1f47ea3aa5f96'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -309,6 +309,36 @@ export type StorageColumnInputTypes = ColumnTypesFromStorage<
 >;
 
 export namespace Models {
+  export type public_Article = {
+    authorId: FieldOutputTypes['public']['Article']['authorId'];
+    body: FieldOutputTypes['public']['Article']['body'];
+    createdAt: FieldOutputTypes['public']['Article']['createdAt'];
+    description: FieldOutputTypes['public']['Article']['description'];
+    favoritesCount: FieldOutputTypes['public']['Article']['favoritesCount'];
+    id: FieldOutputTypes['public']['Article']['id'];
+    slug: FieldOutputTypes['public']['Article']['slug'];
+    title: FieldOutputTypes['public']['Article']['title'];
+    updatedAt: FieldOutputTypes['public']['Article']['updatedAt'];
+    articleTags: public_ArticleTag[];
+    author: public_User;
+    favorites: public_ArticleFavorite[];
+    readonly [RelationKeys]?: 'articleTags' | 'author' | 'favorites';
+  };
+  export type public_ArticleFavorite = {
+    articleId: FieldOutputTypes['public']['ArticleFavorite']['articleId'];
+    createdAt: FieldOutputTypes['public']['ArticleFavorite']['createdAt'];
+    userId: FieldOutputTypes['public']['ArticleFavorite']['userId'];
+    article: public_Article;
+    user: public_User;
+    readonly [RelationKeys]?: 'article' | 'user';
+  };
+  export type public_ArticleTag = {
+    articleId: FieldOutputTypes['public']['ArticleTag']['articleId'];
+    tagId: FieldOutputTypes['public']['ArticleTag']['tagId'];
+    article: public_Article;
+    tag: public_Tag;
+    readonly [RelationKeys]?: 'article' | 'tag';
+  };
   export type public_Attachment = {
     attachableId: FieldOutputTypes['public']['Attachment']['attachableId'];
     attachableType: FieldOutputTypes['public']['Attachment']['attachableType'];
@@ -330,6 +360,12 @@ export namespace Models {
     following: public_User;
     readonly [RelationKeys]?: 'follower' | 'following';
   };
+  export type public_Tag = {
+    id: FieldOutputTypes['public']['Tag']['id'];
+    name: FieldOutputTypes['public']['Tag']['name'];
+    articleTags: public_ArticleTag[];
+    readonly [RelationKeys]?: 'articleTags';
+  };
   export type public_User = {
     bio: FieldOutputTypes['public']['User']['bio'];
     createdAt: FieldOutputTypes['public']['User']['createdAt'];
@@ -348,8 +384,12 @@ export namespace Models {
 
 export declare const models: {
   public: {
+    Article: Models.public_Article;
+    ArticleFavorite: Models.public_ArticleFavorite;
+    ArticleTag: Models.public_ArticleTag;
     Attachment: Models.public_Attachment;
     Follow: Models.public_Follow;
+    Tag: Models.public_Tag;
     User: Models.public_User;
   };
 };
@@ -372,6 +412,225 @@ type ContractBase = Omit<
         readonly kind: 'postgres-schema';
         readonly entries: {
           readonly table: {
+            readonly Article: {
+              columns: {
+                readonly authorId: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly body: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly createdAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly typeParams: { readonly precision: 3 };
+                  readonly many: false;
+                };
+                readonly description: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly favoritesCount: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                  readonly many: false;
+                };
+                readonly id: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly slug: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly title: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly updatedAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly typeParams: { readonly precision: 3 };
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['slug'] }];
+              indexes: readonly [
+                {
+                  readonly name: 'Article_authorId_idx_e47547ed';
+                  readonly prefix: 'Article_authorId_idx';
+                  readonly columns: readonly ['authorId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'Article_createdAt_id_idx_3855cff1';
+                  readonly prefix: 'Article_createdAt_id_idx';
+                  readonly columns: readonly ['createdAt', 'id'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Article';
+                    readonly columns: readonly ['authorId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly ArticleFavorite: {
+              columns: {
+                readonly articleId: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly createdAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly typeParams: { readonly precision: 3 };
+                  readonly many: false;
+                };
+                readonly userId: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['userId', 'articleId'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'ArticleFavorite_articleId_idx_3dd188a0';
+                  readonly prefix: 'ArticleFavorite_articleId_idx';
+                  readonly columns: readonly ['articleId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ArticleFavorite_userId_idx_a489d58a';
+                  readonly prefix: 'ArticleFavorite_userId_idx';
+                  readonly columns: readonly ['userId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ArticleFavorite';
+                    readonly columns: readonly ['userId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ArticleFavorite';
+                    readonly columns: readonly ['articleId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Article';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
+            readonly ArticleTag: {
+              columns: {
+                readonly articleId: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly tagId: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['articleId', 'tagId'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'ArticleTag_articleId_idx_3dd188a0';
+                  readonly prefix: 'ArticleTag_articleId_idx';
+                  readonly columns: readonly ['articleId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'ArticleTag_tagId_idx_86854244';
+                  readonly prefix: 'ArticleTag_tagId_idx';
+                  readonly columns: readonly ['tagId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ArticleTag';
+                    readonly columns: readonly ['articleId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Article';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'ArticleTag';
+                    readonly columns: readonly ['tagId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Tag';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly Attachment: {
               columns: {
                 readonly attachableId: {
@@ -515,6 +774,26 @@ type ContractBase = Omit<
                 },
               ];
             };
+            readonly Tag: {
+              columns: {
+                readonly id: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly name: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [{ readonly columns: readonly ['name'] }];
+              indexes: readonly [];
+              foreignKeys: readonly [];
+            };
             readonly User: {
               columns: {
                 readonly bio: {
@@ -598,17 +877,218 @@ type ContractBase = Omit<
   readonly target: 'postgres';
   readonly targetFamily: 'sql';
   readonly roots: {
+    readonly Article: { readonly namespace: 'public' & NamespaceId; readonly model: 'Article' };
+    readonly ArticleFavorite: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'ArticleFavorite';
+    };
+    readonly ArticleTag: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'ArticleTag';
+    };
     readonly Attachment: {
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'Attachment';
     };
     readonly Follow: { readonly namespace: 'public' & NamespaceId; readonly model: 'Follow' };
+    readonly Tag: { readonly namespace: 'public' & NamespaceId; readonly model: 'Tag' };
     readonly User: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
   };
   readonly domain: {
     readonly namespaces: {
       readonly public: {
         readonly models: {
+          readonly Article: {
+            readonly fields: {
+              readonly authorId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly body: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly description: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly favoritesCount: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly slug: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly title: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+            };
+            readonly relations: {
+              readonly articleTags: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ArticleTag';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['articleId'];
+                };
+              };
+              readonly author: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['authorId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly favorites: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ArticleFavorite';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['articleId'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'Article';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly authorId: { readonly column: 'authorId' };
+                readonly body: { readonly column: 'body' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly description: { readonly column: 'description' };
+                readonly favoritesCount: { readonly column: 'favoritesCount' };
+                readonly id: { readonly column: 'id' };
+                readonly slug: { readonly column: 'slug' };
+                readonly title: { readonly column: 'title' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
+              };
+            };
+          };
+          readonly ArticleFavorite: {
+            readonly fields: {
+              readonly articleId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly userId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+            };
+            readonly relations: {
+              readonly article: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Article';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['articleId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly user: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['userId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'ArticleFavorite';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly articleId: { readonly column: 'articleId' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly userId: { readonly column: 'userId' };
+              };
+            };
+          };
+          readonly ArticleTag: {
+            readonly fields: {
+              readonly articleId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly tagId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+            };
+            readonly relations: {
+              readonly article: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Article';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['articleId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly tag: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'Tag' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['tagId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'ArticleTag';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly articleId: { readonly column: 'articleId' };
+                readonly tagId: { readonly column: 'tagId' };
+              };
+            };
+          };
           readonly Attachment: {
             readonly fields: {
               readonly attachableId: {
@@ -724,6 +1204,39 @@ type ContractBase = Omit<
                 readonly followerId: { readonly column: 'followerId' };
                 readonly followingId: { readonly column: 'followingId' };
                 readonly id: { readonly column: 'id' };
+              };
+            };
+          };
+          readonly Tag: {
+            readonly fields: {
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly name: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+            };
+            readonly relations: {
+              readonly articleTags: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'ArticleTag';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['tagId'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'Tag';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly id: { readonly column: 'id' };
+                readonly name: { readonly column: 'name' };
               };
             };
           };
@@ -858,6 +1371,55 @@ type ContractBase = Omit<
             readonly params: { readonly precision: 3 };
           };
           readonly ref: {
+            readonly entry: 'Article';
+            readonly field: 'createdAt';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'uuidv7'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'Article';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: {
+            readonly id: 'timestampNow';
+            readonly kind: 'generator';
+            readonly params: { readonly precision: 3 };
+          };
+          readonly onUpdate: {
+            readonly id: 'timestampNow';
+            readonly kind: 'generator';
+            readonly params: { readonly precision: 3 };
+          };
+          readonly ref: {
+            readonly entry: 'Article';
+            readonly field: 'updatedAt';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: {
+            readonly id: 'timestampNow';
+            readonly kind: 'generator';
+            readonly params: { readonly precision: 3 };
+          };
+          readonly ref: {
+            readonly entry: 'ArticleFavorite';
+            readonly field: 'createdAt';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: {
+            readonly id: 'timestampNow';
+            readonly kind: 'generator';
+            readonly params: { readonly precision: 3 };
+          };
+          readonly ref: {
             readonly entry: 'Attachment';
             readonly field: 'createdAt';
             readonly namespace: 'public';
@@ -904,6 +1466,14 @@ type ContractBase = Omit<
           readonly onCreate: { readonly id: 'uuidv7'; readonly kind: 'generator' };
           readonly ref: {
             readonly entry: 'Follow';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'uuidv7'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'Tag';
             readonly field: 'id';
             readonly namespace: 'public';
           };

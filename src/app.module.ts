@@ -12,7 +12,9 @@ import { RedisModule } from './redis/redis.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AttachmentsModule } from './modules/attachments/attachments.module.js';
+import { ArticlesModule } from './modules/articles/articles.module.js';
 import { ProfilesModule } from './modules/profiles/profiles.module.js';
+import { TagsModule } from './modules/tags/tags.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
 
 const THROTTLE_TTL_MS = 60000;
@@ -39,6 +41,8 @@ const THROTTLE_LIMIT = 30;
     UsersModule,
     AuthModule,
     ProfilesModule,
+    ArticlesModule,
+    TagsModule,
   ],
   providers: [
     {

@@ -1,0 +1,348 @@
+[
+  {
+    "id": "table.Attachment",
+    "label": "Create table \"Attachment\"",
+    "summary": "Creates table \"Attachment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Attachment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Attachment\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Attachment\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"Attachment\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Attachment\"",
+        "sql": "CREATE TABLE \"public\".\"Attachment\" (\n  \"attachableId\" uuid NOT NULL,\n  \"attachableType\" text NOT NULL,\n  \"createdAt\" timestamptz(3) DEFAULT (now()) NOT NULL,\n  \"fileName\" text NOT NULL,\n  \"fileSize\" int4 NOT NULL,\n  \"fileType\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  \"url\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Attachment_fileSize_positive_chk_370fc603\" CHECK (\"fileSize\" > 0)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Attachment\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"Attachment\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"Attachment\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.Follow",
+    "label": "Create table \"Follow\"",
+    "summary": "Creates table \"Follow\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Follow\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Follow\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"Follow\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Follow\"",
+        "sql": "CREATE TABLE \"public\".\"Follow\" (\n  \"createdAt\" timestamptz(3) DEFAULT (now()) NOT NULL,\n  \"followerId\" uuid NOT NULL,\n  \"followingId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Follow_no_self_follow_chk_f35b6fca\" CHECK (\"followerId\" <> \"followingId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Follow\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"Follow\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"Follow\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "unique.Follow.Follow_followerId_followingId_key",
+    "label": "Add unique constraint on \"Follow\" (followerId, followingId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Follow_followerId_followingId_key",
+        "table": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Follow_followerId_followingId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Follow_followerId_followingId_key",
+          "public",
+          "\"public\".\"Follow\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"Follow_followerId_followingId_key\" on \"Follow\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Follow_followerId_followingId_key\"",
+        "sql": "ALTER TABLE \"public\".\"Follow\" ADD CONSTRAINT \"Follow_followerId_followingId_key\" UNIQUE (\"followerId\", \"followingId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"Follow_followerId_followingId_key\" exists on (followerId, followingId)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "Follow_followerId_followingId_key",
+          "public",
+          "\"public\".\"Follow\"",
+          "u",
+          "[\"followerId\",\"followingId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Attachment.Attachment_attachableType_attachableId_idx_9846a506",
+    "label": "Create index \"Attachment_attachableType_attachableId_idx_9846a506\" on \"Attachment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Attachment_attachableType_attachableId_idx_9846a506",
+        "table": "Attachment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Attachment_attachableType_attachableId_idx_9846a506\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Attachment_attachableType_attachableId_idx_9846a506\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Attachment_attachableType_attachableId_idx_9846a506\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Attachment_attachableType_attachableId_idx_9846a506\"",
+        "sql": "CREATE INDEX \"Attachment_attachableType_attachableId_idx_9846a506\" ON \"public\".\"Attachment\" (\"attachableType\", \"attachableId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Attachment_attachableType_attachableId_idx_9846a506\" exists on \"Attachment\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Attachment_attachableType_attachableId_idx_9846a506\"",
+          "i",
+          "I",
+          "\"public\".\"Attachment\"",
+          "btree",
+          "[\"attachableType\",\"attachableId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Follow.Follow_followingId_idx_1cf16645",
+    "label": "Create index \"Follow_followingId_idx_1cf16645\" on \"Follow\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Follow_followingId_idx_1cf16645",
+        "table": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Follow_followingId_idx_1cf16645\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Follow_followingId_idx_1cf16645\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Follow_followingId_idx_1cf16645\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Follow_followingId_idx_1cf16645\"",
+        "sql": "CREATE INDEX \"Follow_followingId_idx_1cf16645\" ON \"public\".\"Follow\" (\"followingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Follow_followingId_idx_1cf16645\" exists on \"Follow\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Follow_followingId_idx_1cf16645\"",
+          "i",
+          "I",
+          "\"public\".\"Follow\"",
+          "btree",
+          "[\"followingId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Follow.Follow_followerId_fkey",
+    "label": "Add foreign key \"Follow_followerId_fkey\" on \"Follow\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Follow_followerId_fkey",
+        "table": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Follow_followerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Follow_followerId_fkey",
+          "public",
+          "\"public\".\"Follow\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"Follow_followerId_fkey\" on \"Follow\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Follow_followerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Follow\"\nADD CONSTRAINT \"Follow_followerId_fkey\"\nFOREIGN KEY (\"followerId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Follow_followerId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "Follow_followerId_fkey",
+          "public",
+          "\"public\".\"Follow\"",
+          "f",
+          "[\"followerId\"]",
+          "\"public\".\"User\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Follow.Follow_followingId_fkey",
+    "label": "Add foreign key \"Follow_followingId_fkey\" on \"Follow\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Follow_followingId_fkey",
+        "table": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Follow_followingId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Follow_followingId_fkey",
+          "public",
+          "\"public\".\"Follow\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"Follow_followingId_fkey\" on \"Follow\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Follow_followingId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Follow\"\nADD CONSTRAINT \"Follow_followingId_fkey\"\nFOREIGN KEY (\"followingId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Follow_followingId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "Follow_followingId_fkey",
+          "public",
+          "\"public\".\"Follow\"",
+          "f",
+          "[\"followingId\"]",
+          "\"public\".\"User\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  }
+]

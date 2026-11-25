@@ -1,0 +1,1188 @@
+[
+  {
+    "id": "table.Article",
+    "label": "Create table \"Article\"",
+    "summary": "Creates table \"Article\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Article"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Article\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Article\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"Article\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Article\"",
+        "sql": "CREATE TABLE \"public\".\"Article\" (\n  \"authorId\" uuid NOT NULL,\n  \"body\" text NOT NULL,\n  \"createdAt\" timestamptz(3) DEFAULT (now()) NOT NULL,\n  \"description\" text NOT NULL,\n  \"favoritesCount\" int4 DEFAULT 0 NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"slug\" text NOT NULL,\n  \"title\" text NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Article_favoritesCount_non_negative_chk_1a385303\" CHECK (\"favoritesCount\" >= 0)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Article\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"Article\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"Article\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.ArticleFavorite",
+    "label": "Create table \"ArticleFavorite\"",
+    "summary": "Creates table \"ArticleFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ArticleFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ArticleFavorite\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleFavorite\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"ArticleFavorite\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ArticleFavorite\"",
+        "sql": "CREATE TABLE \"public\".\"ArticleFavorite\" (\n  \"articleId\" uuid NOT NULL,\n  \"createdAt\" timestamptz(3) DEFAULT (now()) NOT NULL,\n  \"userId\" uuid NOT NULL,\n  PRIMARY KEY (\"userId\", \"articleId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ArticleFavorite\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleFavorite\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"ArticleFavorite\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.ArticleTag",
+    "label": "Create table \"ArticleTag\"",
+    "summary": "Creates table \"ArticleTag\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "ArticleTag"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"ArticleTag\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleTag\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"ArticleTag\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"ArticleTag\"",
+        "sql": "CREATE TABLE \"public\".\"ArticleTag\" (\n  \"articleId\" uuid NOT NULL,\n  \"tagId\" uuid NOT NULL,\n  PRIMARY KEY (\"articleId\", \"tagId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"ArticleTag\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleTag\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"ArticleTag\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.Attachment",
+    "label": "Create table \"Attachment\"",
+    "summary": "Creates table \"Attachment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Attachment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Attachment\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Attachment\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"Attachment\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Attachment\"",
+        "sql": "CREATE TABLE \"public\".\"Attachment\" (\n  \"attachableId\" uuid NOT NULL,\n  \"attachableType\" text NOT NULL,\n  \"createdAt\" timestamptz(3) DEFAULT (now()) NOT NULL,\n  \"fileName\" text NOT NULL,\n  \"fileSize\" int4 NOT NULL,\n  \"fileType\" text NOT NULL,\n  \"id\" uuid NOT NULL,\n  \"updatedAt\" timestamptz(3) NOT NULL,\n  \"url\" text NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Attachment_fileSize_positive_chk_370fc603\" CHECK (\"fileSize\" > 0)\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Attachment\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"Attachment\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"Attachment\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.Follow",
+    "label": "Create table \"Follow\"",
+    "summary": "Creates table \"Follow\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Follow\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Follow\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"Follow\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Follow\"",
+        "sql": "CREATE TABLE \"public\".\"Follow\" (\n  \"createdAt\" timestamptz(3) DEFAULT (now()) NOT NULL,\n  \"followerId\" uuid NOT NULL,\n  \"followingId\" uuid NOT NULL,\n  \"id\" uuid NOT NULL,\n  PRIMARY KEY (\"id\"),\n  CONSTRAINT \"Follow_no_self_follow_chk_f35b6fca\" CHECK (\"followerId\" <> \"followingId\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Follow\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"Follow\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"Follow\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "table.Tag",
+    "label": "Create table \"Tag\"",
+    "summary": "Creates table \"Tag\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "table",
+        "name": "Tag"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure table \"Tag\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Tag\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "table \"Tag\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create table \"Tag\"",
+        "sql": "CREATE TABLE \"public\".\"Tag\" (\n  \"id\" uuid NOT NULL,\n  \"name\" text NOT NULL,\n  PRIMARY KEY (\"id\")\n)",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify table \"Tag\" exists",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3))) AS \"result\"",
+        "params": [
+          "\"public\".\"Tag\"",
+          "r",
+          "p"
+        ],
+        "expectation": {
+          "expects": "present",
+          "object": "table \"Tag\""
+        }
+      }
+    ]
+  },
+  {
+    "id": "unique.Article.Article_slug_key",
+    "label": "Add unique constraint on \"Article\" (slug)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Article_slug_key",
+        "table": "Article"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Article_slug_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Article_slug_key",
+          "public",
+          "\"public\".\"Article\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"Article_slug_key\" on \"Article\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Article_slug_key\"",
+        "sql": "ALTER TABLE \"public\".\"Article\" ADD CONSTRAINT \"Article_slug_key\" UNIQUE (\"slug\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"Article_slug_key\" exists on (slug)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "Article_slug_key",
+          "public",
+          "\"public\".\"Article\"",
+          "u",
+          "[\"slug\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Follow.Follow_followerId_followingId_key",
+    "label": "Add unique constraint on \"Follow\" (followerId, followingId)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Follow_followerId_followingId_key",
+        "table": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Follow_followerId_followingId_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Follow_followerId_followingId_key",
+          "public",
+          "\"public\".\"Follow\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"Follow_followerId_followingId_key\" on \"Follow\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Follow_followerId_followingId_key\"",
+        "sql": "ALTER TABLE \"public\".\"Follow\" ADD CONSTRAINT \"Follow_followerId_followingId_key\" UNIQUE (\"followerId\", \"followingId\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"Follow_followerId_followingId_key\" exists on (followerId, followingId)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "Follow_followerId_followingId_key",
+          "public",
+          "\"public\".\"Follow\"",
+          "u",
+          "[\"followerId\",\"followingId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "unique.Tag.Tag_name_key",
+    "label": "Add unique constraint on \"Tag\" (name)",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "unique",
+        "name": "Tag_name_key",
+        "table": "Tag"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure constraint \"Tag_name_key\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Tag_name_key",
+          "public",
+          "\"public\".\"Tag\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "constraint \"Tag_name_key\" on \"Tag\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add unique constraint \"Tag_name_key\"",
+        "sql": "ALTER TABLE \"public\".\"Tag\" ADD CONSTRAINT \"Tag_name_key\" UNIQUE (\"name\")"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify unique constraint \"Tag_name_key\" exists on (name)",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb)) AS \"result\"",
+        "params": [
+          "Tag_name_key",
+          "public",
+          "\"public\".\"Tag\"",
+          "u",
+          "[\"name\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Article.Article_authorId_idx_e47547ed",
+    "label": "Create index \"Article_authorId_idx_e47547ed\" on \"Article\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Article_authorId_idx_e47547ed",
+        "table": "Article"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Article_authorId_idx_e47547ed\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Article_authorId_idx_e47547ed\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Article_authorId_idx_e47547ed\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Article_authorId_idx_e47547ed\"",
+        "sql": "CREATE INDEX \"Article_authorId_idx_e47547ed\" ON \"public\".\"Article\" (\"authorId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Article_authorId_idx_e47547ed\" exists on \"Article\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Article_authorId_idx_e47547ed\"",
+          "i",
+          "I",
+          "\"public\".\"Article\"",
+          "btree",
+          "[\"authorId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Article.Article_createdAt_id_idx_3855cff1",
+    "label": "Create index \"Article_createdAt_id_idx_3855cff1\" on \"Article\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Article_createdAt_id_idx_3855cff1",
+        "table": "Article"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Article_createdAt_id_idx_3855cff1\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Article_createdAt_id_idx_3855cff1\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Article_createdAt_id_idx_3855cff1\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Article_createdAt_id_idx_3855cff1\"",
+        "sql": "CREATE INDEX \"Article_createdAt_id_idx_3855cff1\" ON \"public\".\"Article\" (\"createdAt\", \"id\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Article_createdAt_id_idx_3855cff1\" exists on \"Article\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Article_createdAt_id_idx_3855cff1\"",
+          "i",
+          "I",
+          "\"public\".\"Article\"",
+          "btree",
+          "[\"createdAt\",\"id\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ArticleFavorite.ArticleFavorite_articleId_idx_3dd188a0",
+    "label": "Create index \"ArticleFavorite_articleId_idx_3dd188a0\" on \"ArticleFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ArticleFavorite_articleId_idx_3dd188a0",
+        "table": "ArticleFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ArticleFavorite_articleId_idx_3dd188a0\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleFavorite_articleId_idx_3dd188a0\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"ArticleFavorite_articleId_idx_3dd188a0\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ArticleFavorite_articleId_idx_3dd188a0\"",
+        "sql": "CREATE INDEX \"ArticleFavorite_articleId_idx_3dd188a0\" ON \"public\".\"ArticleFavorite\" (\"articleId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ArticleFavorite_articleId_idx_3dd188a0\" exists on \"ArticleFavorite\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleFavorite_articleId_idx_3dd188a0\"",
+          "i",
+          "I",
+          "\"public\".\"ArticleFavorite\"",
+          "btree",
+          "[\"articleId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ArticleFavorite.ArticleFavorite_userId_idx_a489d58a",
+    "label": "Create index \"ArticleFavorite_userId_idx_a489d58a\" on \"ArticleFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ArticleFavorite_userId_idx_a489d58a",
+        "table": "ArticleFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ArticleFavorite_userId_idx_a489d58a\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleFavorite_userId_idx_a489d58a\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"ArticleFavorite_userId_idx_a489d58a\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ArticleFavorite_userId_idx_a489d58a\"",
+        "sql": "CREATE INDEX \"ArticleFavorite_userId_idx_a489d58a\" ON \"public\".\"ArticleFavorite\" (\"userId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ArticleFavorite_userId_idx_a489d58a\" exists on \"ArticleFavorite\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleFavorite_userId_idx_a489d58a\"",
+          "i",
+          "I",
+          "\"public\".\"ArticleFavorite\"",
+          "btree",
+          "[\"userId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ArticleTag.ArticleTag_articleId_idx_3dd188a0",
+    "label": "Create index \"ArticleTag_articleId_idx_3dd188a0\" on \"ArticleTag\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ArticleTag_articleId_idx_3dd188a0",
+        "table": "ArticleTag"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ArticleTag_articleId_idx_3dd188a0\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleTag_articleId_idx_3dd188a0\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"ArticleTag_articleId_idx_3dd188a0\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ArticleTag_articleId_idx_3dd188a0\"",
+        "sql": "CREATE INDEX \"ArticleTag_articleId_idx_3dd188a0\" ON \"public\".\"ArticleTag\" (\"articleId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ArticleTag_articleId_idx_3dd188a0\" exists on \"ArticleTag\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleTag_articleId_idx_3dd188a0\"",
+          "i",
+          "I",
+          "\"public\".\"ArticleTag\"",
+          "btree",
+          "[\"articleId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.ArticleTag.ArticleTag_tagId_idx_86854244",
+    "label": "Create index \"ArticleTag_tagId_idx_86854244\" on \"ArticleTag\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "ArticleTag_tagId_idx_86854244",
+        "table": "ArticleTag"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"ArticleTag_tagId_idx_86854244\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleTag_tagId_idx_86854244\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"ArticleTag_tagId_idx_86854244\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"ArticleTag_tagId_idx_86854244\"",
+        "sql": "CREATE INDEX \"ArticleTag_tagId_idx_86854244\" ON \"public\".\"ArticleTag\" (\"tagId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"ArticleTag_tagId_idx_86854244\" exists on \"ArticleTag\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"ArticleTag_tagId_idx_86854244\"",
+          "i",
+          "I",
+          "\"public\".\"ArticleTag\"",
+          "btree",
+          "[\"tagId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Attachment.Attachment_attachableType_attachableId_idx_9846a506",
+    "label": "Create index \"Attachment_attachableType_attachableId_idx_9846a506\" on \"Attachment\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Attachment_attachableType_attachableId_idx_9846a506",
+        "table": "Attachment"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Attachment_attachableType_attachableId_idx_9846a506\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Attachment_attachableType_attachableId_idx_9846a506\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Attachment_attachableType_attachableId_idx_9846a506\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Attachment_attachableType_attachableId_idx_9846a506\"",
+        "sql": "CREATE INDEX \"Attachment_attachableType_attachableId_idx_9846a506\" ON \"public\".\"Attachment\" (\"attachableType\", \"attachableId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Attachment_attachableType_attachableId_idx_9846a506\" exists on \"Attachment\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Attachment_attachableType_attachableId_idx_9846a506\"",
+          "i",
+          "I",
+          "\"public\".\"Attachment\"",
+          "btree",
+          "[\"attachableType\",\"attachableId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "index.Follow.Follow_followingId_idx_1cf16645",
+    "label": "Create index \"Follow_followingId_idx_1cf16645\" on \"Follow\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "index",
+        "name": "Follow_followingId_idx_1cf16645",
+        "table": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure index \"Follow_followingId_idx_1cf16645\" does not exist",
+        "sql": "SELECT (to_regclass($1)) IS NULL AS \"result\"",
+        "params": [
+          "\"public\".\"Follow_followingId_idx_1cf16645\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "index \"Follow_followingId_idx_1cf16645\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "create index \"Follow_followingId_idx_1cf16645\"",
+        "sql": "CREATE INDEX \"Follow_followingId_idx_1cf16645\" ON \"public\".\"Follow\" (\"followingId\")",
+        "params": []
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify index \"Follow_followingId_idx_1cf16645\" exists on \"Follow\" with the planned definition",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_class\" AS \"c\" INNER JOIN \"pg_index\" AS \"i\" ON \"i\".\"indexrelid\" = \"c\".\"oid\" INNER JOIN \"pg_am\" AS \"m\" ON \"m\".\"oid\" = \"c\".\"relam\" WHERE (\"c\".\"oid\" = to_regclass($1) AND (\"c\".\"relkind\" = $2 OR \"c\".\"relkind\" = $3) AND \"i\".\"indrelid\" = to_regclass($4) AND NOT (\"i\".\"indisunique\") AND \"m\".\"amname\" = $5 AND (\"i\".\"indexprs\" IS NULL AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"i\".\"indkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"i\".\"indrelid\" AND key_attribute.attnum = key_column.attnum) = ($6)::jsonb) AND \"i\".\"indpred\" IS NULL)) AS \"result\"",
+        "params": [
+          "\"public\".\"Follow_followingId_idx_1cf16645\"",
+          "i",
+          "I",
+          "\"public\".\"Follow\"",
+          "btree",
+          "[\"followingId\"]"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Article.Article_authorId_fkey",
+    "label": "Add foreign key \"Article_authorId_fkey\" on \"Article\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Article_authorId_fkey",
+        "table": "Article"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Article_authorId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Article_authorId_fkey",
+          "public",
+          "\"public\".\"Article\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"Article_authorId_fkey\" on \"Article\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Article_authorId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Article\"\nADD CONSTRAINT \"Article_authorId_fkey\"\nFOREIGN KEY (\"authorId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Article_authorId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "Article_authorId_fkey",
+          "public",
+          "\"public\".\"Article\"",
+          "f",
+          "[\"authorId\"]",
+          "\"public\".\"User\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ArticleFavorite.ArticleFavorite_userId_fkey",
+    "label": "Add foreign key \"ArticleFavorite_userId_fkey\" on \"ArticleFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ArticleFavorite_userId_fkey",
+        "table": "ArticleFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ArticleFavorite_userId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ArticleFavorite_userId_fkey",
+          "public",
+          "\"public\".\"ArticleFavorite\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"ArticleFavorite_userId_fkey\" on \"ArticleFavorite\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ArticleFavorite_userId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ArticleFavorite\"\nADD CONSTRAINT \"ArticleFavorite_userId_fkey\"\nFOREIGN KEY (\"userId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ArticleFavorite_userId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "ArticleFavorite_userId_fkey",
+          "public",
+          "\"public\".\"ArticleFavorite\"",
+          "f",
+          "[\"userId\"]",
+          "\"public\".\"User\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ArticleFavorite.ArticleFavorite_articleId_fkey",
+    "label": "Add foreign key \"ArticleFavorite_articleId_fkey\" on \"ArticleFavorite\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ArticleFavorite_articleId_fkey",
+        "table": "ArticleFavorite"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ArticleFavorite_articleId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ArticleFavorite_articleId_fkey",
+          "public",
+          "\"public\".\"ArticleFavorite\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"ArticleFavorite_articleId_fkey\" on \"ArticleFavorite\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ArticleFavorite_articleId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ArticleFavorite\"\nADD CONSTRAINT \"ArticleFavorite_articleId_fkey\"\nFOREIGN KEY (\"articleId\")\nREFERENCES \"public\".\"Article\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ArticleFavorite_articleId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "ArticleFavorite_articleId_fkey",
+          "public",
+          "\"public\".\"ArticleFavorite\"",
+          "f",
+          "[\"articleId\"]",
+          "\"public\".\"Article\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ArticleTag.ArticleTag_articleId_fkey",
+    "label": "Add foreign key \"ArticleTag_articleId_fkey\" on \"ArticleTag\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ArticleTag_articleId_fkey",
+        "table": "ArticleTag"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ArticleTag_articleId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ArticleTag_articleId_fkey",
+          "public",
+          "\"public\".\"ArticleTag\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"ArticleTag_articleId_fkey\" on \"ArticleTag\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ArticleTag_articleId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ArticleTag\"\nADD CONSTRAINT \"ArticleTag_articleId_fkey\"\nFOREIGN KEY (\"articleId\")\nREFERENCES \"public\".\"Article\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ArticleTag_articleId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "ArticleTag_articleId_fkey",
+          "public",
+          "\"public\".\"ArticleTag\"",
+          "f",
+          "[\"articleId\"]",
+          "\"public\".\"Article\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.ArticleTag.ArticleTag_tagId_fkey",
+    "label": "Add foreign key \"ArticleTag_tagId_fkey\" on \"ArticleTag\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "ArticleTag_tagId_fkey",
+        "table": "ArticleTag"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"ArticleTag_tagId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "ArticleTag_tagId_fkey",
+          "public",
+          "\"public\".\"ArticleTag\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"ArticleTag_tagId_fkey\" on \"ArticleTag\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"ArticleTag_tagId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"ArticleTag\"\nADD CONSTRAINT \"ArticleTag_tagId_fkey\"\nFOREIGN KEY (\"tagId\")\nREFERENCES \"public\".\"Tag\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"ArticleTag_tagId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "ArticleTag_tagId_fkey",
+          "public",
+          "\"public\".\"ArticleTag\"",
+          "f",
+          "[\"tagId\"]",
+          "\"public\".\"Tag\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Follow.Follow_followerId_fkey",
+    "label": "Add foreign key \"Follow_followerId_fkey\" on \"Follow\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Follow_followerId_fkey",
+        "table": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Follow_followerId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Follow_followerId_fkey",
+          "public",
+          "\"public\".\"Follow\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"Follow_followerId_fkey\" on \"Follow\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Follow_followerId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Follow\"\nADD CONSTRAINT \"Follow_followerId_fkey\"\nFOREIGN KEY (\"followerId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Follow_followerId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "Follow_followerId_fkey",
+          "public",
+          "\"public\".\"Follow\"",
+          "f",
+          "[\"followerId\"]",
+          "\"public\".\"User\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  },
+  {
+    "id": "foreignKey.Follow.Follow_followingId_fkey",
+    "label": "Add foreign key \"Follow_followingId_fkey\" on \"Follow\"",
+    "operationClass": "additive",
+    "target": {
+      "id": "postgres",
+      "details": {
+        "schema": "public",
+        "objectType": "foreignKey",
+        "name": "Follow_followingId_fkey",
+        "table": "Follow"
+      }
+    },
+    "precheck": [
+      {
+        "description": "ensure FK \"Follow_followingId_fkey\" does not exist",
+        "sql": "SELECT NOT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3))) AS \"result\"",
+        "params": [
+          "Follow_followingId_fkey",
+          "public",
+          "\"public\".\"Follow\""
+        ],
+        "expectation": {
+          "expects": "absent",
+          "object": "FK \"Follow_followingId_fkey\" on \"Follow\""
+        }
+      }
+    ],
+    "execute": [
+      {
+        "description": "add FK \"Follow_followingId_fkey\"",
+        "sql": "ALTER TABLE \"public\".\"Follow\"\nADD CONSTRAINT \"Follow_followingId_fkey\"\nFOREIGN KEY (\"followingId\")\nREFERENCES \"public\".\"User\" (\"id\")\nON DELETE CASCADE"
+      }
+    ],
+    "postcheck": [
+      {
+        "description": "verify FK \"Follow_followingId_fkey\" exists with the planned columns, referenced table and actions",
+        "sql": "SELECT EXISTS (SELECT 1 AS \"one\" FROM \"pg_constraint\" AS \"c\" INNER JOIN \"pg_namespace\" AS \"n\" ON \"n\".\"oid\" = \"c\".\"connamespace\" WHERE (\"c\".\"conname\" = $1 AND \"n\".\"nspname\" = $2 AND \"c\".\"conrelid\" = to_regclass($3) AND \"c\".\"contype\" = $4 AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"conkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"conrelid\" AND key_attribute.attnum = key_column.attnum) = ($5)::jsonb AND \"c\".\"confrelid\" = to_regclass($6) AND (SELECT coalesce(jsonb_agg(key_attribute.attname ORDER BY key_column.position), '[]'::jsonb) FROM unnest(\"c\".\"confkey\"::int2[]) WITH ORDINALITY AS key_column(attnum, position) JOIN pg_attribute key_attribute ON key_attribute.attrelid = \"c\".\"confrelid\" AND key_attribute.attnum = key_column.attnum) = ($7)::jsonb AND \"c\".\"confdeltype\" = $8 AND \"c\".\"confupdtype\" = $9)) AS \"result\"",
+        "params": [
+          "Follow_followingId_fkey",
+          "public",
+          "\"public\".\"Follow\"",
+          "f",
+          "[\"followingId\"]",
+          "\"public\".\"User\"",
+          "[\"id\"]",
+          "c",
+          "a"
+        ]
+      }
+    ]
+  }
+]

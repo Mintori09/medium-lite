@@ -13,6 +13,7 @@ import { UsersModule } from './modules/users/users.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { AttachmentsModule } from './modules/attachments/attachments.module.js';
 import { ArticlesModule } from './modules/articles/articles.module.js';
+import { CommentsModule } from './modules/comments/comments.module.js';
 import { ProfilesModule } from './modules/profiles/profiles.module.js';
 import { TagsModule } from './modules/tags/tags.module.js';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard.js';
@@ -42,6 +43,7 @@ const THROTTLE_LIMIT = 30;
     AuthModule,
     ProfilesModule,
     ArticlesModule,
+    CommentsModule,
     TagsModule,
   ],
   providers: [

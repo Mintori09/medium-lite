@@ -20,6 +20,10 @@
       "model": "Attachment",
       "namespace": "public"
     },
+    "Comment": {
+      "model": "Comment",
+      "namespace": "public"
+    },
     "Follow": {
       "model": "Follow",
       "namespace": "public"
@@ -138,6 +142,21 @@
                 },
                 "to": {
                   "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "comments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "articleId"
+                  ]
+                },
+                "to": {
+                  "model": "Comment",
                   "namespace": "public"
                 }
               },
@@ -437,6 +456,116 @@
               },
               "namespaceId": "public",
               "table": "Attachment"
+            }
+          },
+          "Comment": {
+            "fields": {
+              "articleId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "authorId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "body": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/uuid@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar",
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              }
+            },
+            "relations": {
+              "article": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "articleId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Article",
+                  "namespace": "public"
+                }
+              },
+              "author": {
+                "cardinality": "N:1",
+                "nullable": false,
+                "on": {
+                  "localFields": [
+                    "authorId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "articleId": {
+                  "column": "articleId"
+                },
+                "authorId": {
+                  "column": "authorId"
+                },
+                "body": {
+                  "column": "body"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                }
+              },
+              "namespaceId": "public",
+              "table": "Comment"
             }
           },
           "Follow": {
@@ -1101,6 +1230,126 @@
               },
               "uniques": []
             },
+            "Comment": {
+              "columns": {
+                "articleId": {
+                  "codecId": "pg/uuid@1",
+                  "dataType": "pg/uuid",
+                  "nullable": false
+                },
+                "authorId": {
+                  "codecId": "pg/uuid@1",
+                  "dataType": "pg/uuid",
+                  "nullable": false
+                },
+                "body": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                },
+                "id": {
+                  "codecId": "pg/uuid@1",
+                  "dataType": "pg/uuid",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": false,
+                  "typeParams": {
+                    "precision": 3
+                  }
+                }
+              },
+              "foreignKeys": [
+                {
+                  "index": {
+                    "name": "Comment_articleId_idx_3dd188a0"
+                  },
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "articleId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Comment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Article"
+                  }
+                },
+                {
+                  "index": {
+                    "name": "Comment_authorId_idx_e47547ed"
+                  },
+                  "onDelete": "cascade",
+                  "source": {
+                    "columns": [
+                      "authorId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "Comment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "User"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "articleId",
+                    "createdAt",
+                    "id"
+                  ],
+                  "name": "Comment_articleId_createdAt_id_idx_ef18c7b5",
+                  "prefix": "Comment_articleId_createdAt_id_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "articleId"
+                  ],
+                  "name": "Comment_articleId_idx_3dd188a0",
+                  "prefix": "Comment_articleId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "authorId"
+                  ],
+                  "name": "Comment_authorId_idx_e47547ed",
+                  "prefix": "Comment_authorId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
             "Follow": {
               "checks": [
                 {
@@ -1324,10 +1573,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "380cafc8e1f425119b6786013318ca37365d2fbe1545c40fd27ca7167aa7d6a5"
+    "storageHash": "af653bae1d6e2d132ffa9147948a5babd486b8bad1573eac32ba1f2c73914450"
   },
   "execution": {
-    "executionHash": "aed7900167160f6c32c932bced5c6b92fc4bf22da04f5ae5eec1f47ea3aa5f96",
+    "executionHash": "be4518694bae518ab4b8db7a56e8ebc1024fc6f3139da74958f49a1b1c49c140",
     "mutations": {
       "defaults": [
         {
@@ -1432,6 +1681,52 @@
           },
           "ref": {
             "entry": "Attachment",
+            "field": "updatedAt",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator",
+            "params": {
+              "precision": 3
+            }
+          },
+          "ref": {
+            "entry": "Comment",
+            "field": "createdAt",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "uuidv7",
+            "kind": "generator"
+          },
+          "ref": {
+            "entry": "Comment",
+            "field": "id",
+            "namespace": "public"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator",
+            "params": {
+              "precision": 3
+            }
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator",
+            "params": {
+              "precision": 3
+            }
+          },
+          "ref": {
+            "entry": "Comment",
             "field": "updatedAt",
             "namespace": "public"
           }

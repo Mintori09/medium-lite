@@ -1,0 +1,6 @@
+{
+  "notFound": "Comment not found",
+  "authorNotFound": "Comment author not found",
+  "forbiddenDelete": "You do not have permission to delete this comment",
+  "bodyTooLong": "Comment body must not exceed 16000 characters"
+}

@@ -198,6 +198,38 @@ export const contract = defineContract(
         ],
       }));
 
+    const Comment = model('Comment', {
+      fields: {
+        id: field.column(type.Uuid()).id().onCreate(gen.uuid(7)),
+        body: field.column(type.String()),
+        articleId: field.column(type.Uuid()),
+        authorId: field.column(type.Uuid()),
+        createdAt: field
+          .column(type.DateTime())
+          .default(now())
+          .onCreate(gen.now()),
+        updatedAt: field.column(type.temporal.UpdatedAt()),
+      },
+    })
+      .relations({
+        article: rel
+          .belongsTo(Article, { from: 'articleId', to: 'id' })
+          .sql({ fk: { onDelete: 'cascade' } }),
+        author: rel
+          .belongsTo(User, { from: 'authorId', to: 'id' })
+          .sql({ fk: { onDelete: 'cascade' } }),
+      })
+      .sql(({ cols, constraints }) => ({
+        indexes: [
+          constraints.index([cols.articleId, cols.createdAt, cols.id], {
+            name: 'Comment_articleId_createdAt_id_idx',
+          }),
+          constraints.index([cols.authorId], {
+            name: 'Comment_authorId_idx',
+          }),
+        ],
+      }));
+
     return {
       models: {
         User: User.relations({
@@ -209,12 +241,14 @@ export const contract = defineContract(
         Article: Article.relations({
           articleTags: rel.hasMany(ArticleTag, { by: 'articleId' }),
           favorites: rel.hasMany(ArticleFavorite, { by: 'articleId' }),
+          comments: rel.hasMany(Comment, { by: 'articleId' }),
         }),
         Tag: Tag.relations({
           articleTags: rel.hasMany(ArticleTag, { by: 'tagId' }),
         }),
         ArticleTag,
         ArticleFavorite,
+        Comment,
       },
     };
   },

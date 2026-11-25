@@ -1,0 +1,6 @@
+{
+  "notFound": "Không tìm thấy bình luận",
+  "authorNotFound": "Không tìm thấy tác giả bình luận",
+  "forbiddenDelete": "Bạn không có quyền xóa bình luận này",
+  "bodyTooLong": "Nội dung bình luận không được vượt quá 16000 ký tự"
+}

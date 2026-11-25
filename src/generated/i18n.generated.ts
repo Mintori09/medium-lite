@@ -31,6 +31,12 @@ export type I18nTranslations = {
         "USER_INACTIVE_OR_NOT_FOUND": string;
         "REFRESH_TOKEN_MISSING": string;
     };
+    "comments": {
+        "notFound": string;
+        "authorNotFound": string;
+        "forbiddenDelete": string;
+        "bodyTooLong": string;
+    };
     "profiles": {
         "USER_NOT_FOUND": string;
         "CANNOT_FOLLOW_SELF": string;

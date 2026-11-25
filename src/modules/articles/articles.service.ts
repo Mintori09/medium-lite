@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import { db } from '../../common/database/db.js';
-import { getUniqueViolationConstraint } from '../../common/utils/database-error.util.js';
 import type { I18nTranslations } from '../../generated/i18n.generated.js';
 import type {
   MultipleArticlesResponseDto,
@@ -46,35 +45,19 @@ export class ArticlesService {
       return;
     }
 
-    for (const name of tagNames) {
-      const existing = await tx.orm.public.Tag.first({ name });
-      if (!existing) {
-        try {
-          await tx.orm.public.Tag.create({ name });
-        } catch (error) {
-          if (getUniqueViolationConstraint(error) === null) {
-            throw error;
-          }
-        }
-      }
-    }
+    await tx.orm.public.Tag.createAndCount(
+      tagNames.map((name) => ({ name })),
+      { onConflict: 'skip', conflictOn: ['name'] },
+    );
 
     const tags = await tx.orm.public.Tag.where((t) =>
       t.name.in(tagNames),
     ).all();
 
-    for (const tag of tags) {
-      try {
-        await tx.orm.public.ArticleTag.create({
-          articleId,
-          tagId: tag.id,
-        });
-      } catch (error) {
-        if (getUniqueViolationConstraint(error) === null) {
-          throw error;
-        }
-      }
-    }
+    await tx.orm.public.ArticleTag.createAndCount(
+      tags.map((tag) => ({ articleId, tagId: tag.id })),
+      { onConflict: 'skip', conflictOn: ['articleId', 'tagId'] },
+    );
   }
 
   private async attachAuthors(
@@ -286,18 +269,35 @@ export class ArticlesService {
       baseQuery = baseQuery.where((a) => a.authorId.eq(aId));
     }
 
-    const [articles, articlesCount] = await Promise.all([
+    let countQuery = db.sql.public.Article.select((_a, fn) => ({
+      count: fn.count(),
+    }));
+    if (filterArticleIds !== null) {
+      const ids = filterArticleIds;
+      countQuery = countQuery.where((a, fn) => fn.in(a.id, ids));
+    }
+    if (filterAuthorId !== null) {
+      const aId = filterAuthorId;
+      countQuery = countQuery.where((a, fn) => fn.eq(a.authorId, aId));
+    }
+
+    const [articles, countRows] = await Promise.all([
       baseQuery
         .orderBy([(a) => a.createdAt.desc(), (a) => a.id.desc()])
         .limit(limit)
         .offset(offset)
         .all(),
-      baseQuery.all().then((rows) => rows.length),
+      db.query(countQuery.build()),
     ]);
+    const articlesCount = Number(countRows[0]?.count ?? 0);
 
     const withAuthors = await this.attachAuthors(articles);
     const maps = await this.enrichArticles(withAuthors, currentUserId);
-    return mapMultipleArticlesResponse(withAuthors, articlesCount, maps);
+    return mapMultipleArticlesResponse(
+      withAuthors,
+      Number(articlesCount),
+      maps,
+    );
   }
 
   async findFeed(
@@ -319,18 +319,27 @@ export class ArticlesService {
       a.authorId.in(followingIds),
     );
 
-    const [articles, articlesCount] = await Promise.all([
+    const countQuery = db.sql.public.Article.select((_a, fn) => ({
+      count: fn.count(),
+    })).where((a, fn) => fn.in(a.authorId, followingIds));
+
+    const [articles, countRows] = await Promise.all([
       baseQuery
         .orderBy([(a) => a.createdAt.desc(), (a) => a.id.desc()])
         .limit(limit)
         .offset(offset)
         .all(),
-      baseQuery.all().then((rows) => rows.length),
+      db.query(countQuery.build()),
     ]);
+    const articlesCount = Number(countRows[0]?.count ?? 0);
 
     const withAuthors = await this.attachAuthors(articles);
     const maps = await this.enrichArticles(withAuthors, userId);
-    return mapMultipleArticlesResponse(withAuthors, articlesCount, maps);
+    return mapMultipleArticlesResponse(
+      withAuthors,
+      Number(articlesCount),
+      maps,
+    );
   }
 
   async findBySlug(
@@ -394,27 +403,22 @@ export class ArticlesService {
     const existing = await this.findArticleRecordBySlug(slug);
 
     await db.transaction(async (tx) => {
-      let inserted = false;
-      try {
-        await tx.orm.public.ArticleFavorite.create({
-          userId,
-          articleId: existing.id,
-        });
-        inserted = true;
-      } catch (error) {
-        if (getUniqueViolationConstraint(error) === null) {
-          throw error;
-        }
-      }
+      await tx.orm.public.ArticleFavorite.createAndCount(
+        [{ userId, articleId: existing.id }],
+        { onConflict: 'skip', conflictOn: ['userId', 'articleId'] },
+      );
 
-      if (inserted) {
-        const fresh = await tx.orm.public.Article.first({ id: existing.id });
-        if (fresh) {
-          await tx.orm.public.Article.where({ id: existing.id }).update({
-            favoritesCount: fresh.favoritesCount + 1,
-          });
-        }
-      }
+      const countRows = await tx.query(
+        db.sql.public.ArticleFavorite.select((_f, fn) => ({
+          count: fn.count(),
+        }))
+          .where((f, fn) => fn.eq(f.articleId, existing.id))
+          .build(),
+      );
+
+      await tx.orm.public.Article.where({ id: existing.id }).update({
+        favoritesCount: Number(countRows[0]?.count ?? 0),
+      });
     });
 
     return this.findBySlug(slug, userId);
@@ -427,19 +431,22 @@ export class ArticlesService {
     const existing = await this.findArticleRecordBySlug(slug);
 
     await db.transaction(async (tx) => {
-      const deleted = await tx.orm.public.ArticleFavorite.where({
+      await tx.orm.public.ArticleFavorite.where({
         userId,
         articleId: existing.id,
       }).delete();
 
-      if (deleted) {
-        const fresh = await tx.orm.public.Article.first({ id: existing.id });
-        if (fresh) {
-          await tx.orm.public.Article.where({ id: existing.id }).update({
-            favoritesCount: Math.max(fresh.favoritesCount - 1, 0),
-          });
-        }
-      }
+      const countRows = await tx.query(
+        db.sql.public.ArticleFavorite.select((_f, fn) => ({
+          count: fn.count(),
+        }))
+          .where((f, fn) => fn.eq(f.articleId, existing.id))
+          .build(),
+      );
+
+      await tx.orm.public.Article.where({ id: existing.id }).update({
+        favoritesCount: Number(countRows[0]?.count ?? 0),
+      });
     });
 
     return this.findBySlug(slug, userId);

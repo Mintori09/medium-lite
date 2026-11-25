@@ -77,21 +77,19 @@ describe('ArticlesService', () => {
     });
 
     it('creates an article with tags and handles 23505 unique conflict', async () => {
-      const uniqueErr = { sqlState: '23505', constraint: 'Tag_name_key' };
       vi.spyOn(db, 'transaction').mockImplementation(async (fn) => {
         const tx = {
           orm: {
             public: {
               Article: { create: vi.fn().mockResolvedValue(mockArticleRow) },
               Tag: {
-                first: vi.fn().mockResolvedValue(null),
-                create: vi.fn().mockRejectedValue(uniqueErr),
+                createAndCount: vi.fn().mockResolvedValue(1),
                 where: vi.fn().mockReturnValue({
                   all: vi.fn().mockResolvedValue([{ id: 'tag-1', name: 'ts' }]),
                 }),
               },
               ArticleTag: {
-                create: vi.fn().mockRejectedValue(uniqueErr),
+                createAndCount: vi.fn().mockResolvedValue(1),
               },
             },
           },
@@ -118,8 +116,7 @@ describe('ArticlesService', () => {
             public: {
               Article: { create: vi.fn().mockResolvedValue(mockArticleRow) },
               Tag: {
-                first: vi.fn().mockResolvedValue(null),
-                create: vi.fn().mockRejectedValue(new Error('DB down')),
+                createAndCount: vi.fn().mockRejectedValue(new Error('DB down')),
               },
             },
           },
@@ -203,8 +200,20 @@ describe('ArticlesService', () => {
         limit: vi.fn().mockReturnThis(),
         offset: vi.fn().mockReturnThis(),
         all: vi.fn().mockResolvedValue([]),
+        count: vi.fn().mockResolvedValue(0),
       };
       vi.spyOn(db.orm.public.Article, 'where').mockReturnValue(chain as never);
+      vi.spyOn(db, 'sql', 'get').mockReturnValue({
+        public: {
+          Article: {
+            select: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnThis(),
+              build: vi.fn().mockReturnValue({}),
+            }),
+          },
+        },
+      } as never);
+      vi.spyOn(db, 'query').mockResolvedValue([{ count: 0 }] as never);
 
       const res = await service.findAll({ limit: 20, offset: 0 });
       expect(res).toEqual({ articles: [], articlesCount: 0 });
@@ -217,8 +226,20 @@ describe('ArticlesService', () => {
         limit: vi.fn().mockReturnThis(),
         offset: vi.fn().mockReturnThis(),
         all: vi.fn().mockResolvedValue([mockArticleRow]),
+        count: vi.fn().mockResolvedValue(1),
       };
       vi.spyOn(db.orm.public.Article, 'where').mockReturnValue(chain as never);
+      vi.spyOn(db, 'sql', 'get').mockReturnValue({
+        public: {
+          Article: {
+            select: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnThis(),
+              build: vi.fn().mockReturnValue({}),
+            }),
+          },
+        },
+      } as never);
+      vi.spyOn(db, 'query').mockResolvedValue([{ count: 1 }] as never);
       vi.spyOn(db.orm.public.User, 'where').mockReturnValue({
         all: vi.fn().mockResolvedValue([mockAuthor]),
       } as never);
@@ -260,8 +281,20 @@ describe('ArticlesService', () => {
         limit: vi.fn().mockReturnThis(),
         offset: vi.fn().mockReturnThis(),
         all: vi.fn().mockResolvedValue([mockArticleRow]),
+        count: vi.fn().mockResolvedValue(1),
       };
       vi.spyOn(db.orm.public.Article, 'where').mockReturnValue(chain as never);
+      vi.spyOn(db, 'sql', 'get').mockReturnValue({
+        public: {
+          Article: {
+            select: vi.fn().mockReturnValue({
+              where: vi.fn().mockReturnThis(),
+              build: vi.fn().mockReturnValue({}),
+            }),
+          },
+        },
+      } as never);
+      vi.spyOn(db, 'query').mockResolvedValue([{ count: 1 }] as never);
       mockEnrichmentEmpty();
       vi.spyOn(db.orm.public.Follow, 'where').mockReturnValue({
         where: vi.fn().mockReturnThis(),
@@ -313,10 +346,10 @@ describe('ArticlesService', () => {
               },
               ArticleTag: {
                 where: vi.fn().mockReturnValue({ delete: vi.fn() }),
-                create: vi.fn(),
+                createAndCount: vi.fn().mockResolvedValue(1),
               },
               Tag: {
-                first: vi.fn().mockResolvedValue({ id: 't-1', name: 'ts' }),
+                createAndCount: vi.fn().mockResolvedValue(1),
                 where: vi.fn().mockReturnValue({
                   all: vi.fn().mockResolvedValue([{ id: 't-1', name: 'ts' }]),
                 }),
@@ -368,52 +401,65 @@ describe('ArticlesService', () => {
         mockArticleRow as never,
       );
       mockEnrichmentEmpty();
-      const updateMock = vi.fn();
+      const updateMock = vi.fn().mockResolvedValue([]);
       vi.spyOn(db, 'transaction').mockImplementation(async (fn) => {
         const tx = {
           orm: {
             public: {
-              ArticleFavorite: { create: vi.fn().mockResolvedValue({}) },
+              ArticleFavorite: {
+                createAndCount: vi.fn().mockResolvedValue(1),
+              },
               Article: {
-                first: vi.fn().mockResolvedValue(mockArticleRow),
                 where: vi.fn().mockReturnValue({ update: updateMock }),
               },
             },
           },
+          query: vi.fn().mockResolvedValue([{ count: 1 }]),
         };
         return fn(tx as never);
       });
+      vi.spyOn(db.sql.public.ArticleFavorite, 'select').mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          build: vi.fn().mockReturnValue({}),
+        }),
+      } as never);
       mockEnrichmentEmpty();
 
       await service.favorite('title-abc123', 'user-1');
       expect(updateMock).toHaveBeenCalledWith({ favoritesCount: 1 });
     });
 
-    it('is idempotent when favorite already exists (23505)', async () => {
+    it('is idempotent when favorite already exists (onConflict skip)', async () => {
       vi.spyOn(db.orm.public.Article, 'first').mockResolvedValue(
         mockArticleRow as never,
       );
       mockEnrichmentEmpty();
-      const updateMock = vi.fn();
+      const updateMock = vi.fn().mockResolvedValue([]);
       vi.spyOn(db, 'transaction').mockImplementation(async (fn) => {
         const tx = {
           orm: {
             public: {
               ArticleFavorite: {
-                create: vi.fn().mockRejectedValue({ sqlState: '23505' }),
+                createAndCount: vi.fn().mockResolvedValue(0),
               },
               Article: {
                 where: vi.fn().mockReturnValue({ update: updateMock }),
               },
             },
           },
+          query: vi.fn().mockResolvedValue([{ count: 1 }]),
         };
         return fn(tx as never);
       });
+      vi.spyOn(db.sql.public.ArticleFavorite, 'select').mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          build: vi.fn().mockReturnValue({}),
+        }),
+      } as never);
       mockEnrichmentEmpty();
 
       await service.favorite('title-abc123', 'user-1');
-      expect(updateMock).not.toHaveBeenCalled();
+      expect(updateMock).toHaveBeenCalledWith({ favoritesCount: 1 });
     });
 
     it('rethrows non-unique errors during favorite', async () => {
@@ -426,7 +472,9 @@ describe('ArticlesService', () => {
           orm: {
             public: {
               ArticleFavorite: {
-                create: vi.fn().mockRejectedValue(new Error('DB error')),
+                createAndCount: vi
+                  .fn()
+                  .mockRejectedValue(new Error('DB error')),
               },
             },
           },
@@ -444,7 +492,7 @@ describe('ArticlesService', () => {
       vi.spyOn(db.orm.public.Article, 'first').mockResolvedValue(
         favArticle as never,
       );
-      const updateMock = vi.fn();
+      const updateMock = vi.fn().mockResolvedValue([]);
       vi.spyOn(db, 'transaction').mockImplementation(async (fn) => {
         const tx = {
           orm: {
@@ -455,14 +503,19 @@ describe('ArticlesService', () => {
                 }),
               },
               Article: {
-                first: vi.fn().mockResolvedValue(favArticle),
                 where: vi.fn().mockReturnValue({ update: updateMock }),
               },
             },
           },
+          query: vi.fn().mockResolvedValue([{ count: 1 }]),
         };
         return fn(tx as never);
       });
+      vi.spyOn(db.sql.public.ArticleFavorite, 'select').mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          build: vi.fn().mockReturnValue({}),
+        }),
+      } as never);
       mockEnrichmentEmpty();
 
       await service.unfavorite('title-abc123', 'user-1');

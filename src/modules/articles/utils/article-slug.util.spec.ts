@@ -17,4 +17,11 @@ describe('generateArticleSlug', () => {
     const slug = generateArticleSlug('!!!');
     expect(slug).toMatch(/^article-[a-f0-9]{6}$/);
   });
+
+  it('transliterates Vietnamese diacritics and đ/Đ before slugifying', () => {
+    const slug = generateArticleSlug('Học NestJS cơ bản: Đường đến thành công');
+    expect(slug).toMatch(
+      /^hoc-nestjs-co-ban-duong-den-thanh-cong-[a-f0-9]{6}$/,
+    );
+  });
 });

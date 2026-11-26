@@ -2,6 +2,20 @@ import { z } from 'zod';
 import dotenv from 'dotenv';
 import { expand } from 'dotenv-expand';
 import type { JwtExpiresIn } from '../types/jwt.type.js';
+import { parseDurationToSeconds } from '../utils/duration.util.js';
+
+const jwtExpiresInSchema = z
+  .custom<JwtExpiresIn>((val) => {
+    if (typeof val !== 'string' && typeof val !== 'number') {
+      return false;
+    }
+    try {
+      parseDurationToSeconds(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }, 'Must be a positive duration with unit (e.g. "15m", "7d", "900s")');
 
 const envFile = process.env.NODE_ENV === 'test' ? '.env.test' : '.env';
 expand(dotenv.config({ path: envFile }));
@@ -35,19 +49,11 @@ export const envSchema = z.object({
   JWT_ACCESS_SECRET: z
     .string()
     .min(32, 'JWT_ACCESS_SECRET must be at least 32 characters'),
-  JWT_ACCESS_EXPIRES_IN: z
-    .custom<JwtExpiresIn>(
-      (val) => typeof val === 'string' || typeof val === 'number',
-    )
-    .default('15m'),
+  JWT_ACCESS_EXPIRES_IN: jwtExpiresInSchema.default('15m'),
   JWT_REFRESH_SECRET: z
     .string()
     .min(32, 'JWT_REFRESH_SECRET must be at least 32 characters'),
-  JWT_REFRESH_EXPIRES_IN: z
-    .custom<JwtExpiresIn>(
-      (val) => typeof val === 'string' || typeof val === 'number',
-    )
-    .default('7d'),
+  JWT_REFRESH_EXPIRES_IN: jwtExpiresInSchema.default('7d'),
 
   // Swagger
   SWAGGER_SITE_TITLE: z.string().default('The NestJs Authentication API'),

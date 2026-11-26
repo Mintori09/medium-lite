@@ -7,6 +7,7 @@ const ZOD_ISSUE_CODES = {
   TOO_BIG: 'too_big',
   UNRECOGNIZED_KEYS: 'unrecognized_keys',
   INVALID_VALUE: 'invalid_value',
+  CUSTOM: 'custom',
 } as const;
 
 export type TranslationFn = (
@@ -49,6 +50,16 @@ export function translateZodIssue(
     }
     case ZOD_ISSUE_CODES.INVALID_VALUE:
       return t('validation.INVALID_VALUE', { field });
+    case ZOD_ISSUE_CODES.CUSTOM: {
+      const params = (issue as { params?: Record<string, unknown> }).params;
+      if (params) {
+        const { i18nKey, ...restParams } = params;
+        if (typeof i18nKey === 'string' && i18nKey.startsWith('validation.')) {
+          return t(i18nKey as `validation.${string}`, { field, ...restParams });
+        }
+      }
+      return t('validation.INVALID', { field });
+    }
     default:
       return t('validation.INVALID', { field });
   }

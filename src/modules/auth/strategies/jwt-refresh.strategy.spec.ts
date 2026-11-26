@@ -50,23 +50,22 @@ describe('JwtRefreshStrategy', () => {
       });
     });
 
-    it('should fallback to extracting refreshToken from request body if cookie is missing', async () => {
+    it('should throw UnauthorizedException if refreshToken is only in body and missing in cookies', async () => {
       const mockReq = {
+        cookies: {},
         body: {
           refreshToken: 'valid-refresh-body-token',
         },
       } as unknown as Request;
 
-      const result = await strategy.validate(mockReq, mockPayload);
+      await expect(strategy.validate(mockReq, mockPayload)).rejects.toThrow(
+        UnauthorizedException,
+      );
 
-      expect(result).toEqual({
-        userId: mockPayload.sub,
-        email: mockPayload.email,
-        username: mockPayload.username,
-        accessToken: '',
-        refreshToken: 'valid-refresh-body-token',
-        exp: mockPayload.exp,
-      });
+      expect(mockI18nService.translate).toHaveBeenCalledWith(
+        'auth.REFRESH_TOKEN_MISSING',
+        expect.any(Object),
+      );
     });
 
     it('should throw UnauthorizedException with i18n message if refreshToken is missing in both cookie and body', async () => {

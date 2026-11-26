@@ -4,6 +4,7 @@ import { ExtractJwt, Strategy } from 'passport-jwt';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import type { Request } from 'express';
 import { env } from '../../../common/configs/env.config.js';
+import { hashToken } from '../../../common/utils/token.util.js';
 import type { I18nTranslations } from '../../../generated/i18n.generated.js';
 import { RedisService } from '../../../redis/redis.service.js';
 import { UsersService } from '../../users/users.service.js';
@@ -37,7 +38,7 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     }
 
     const isBlacklisted = await this.redisService.get(
-      `auth:blacklist:${rawToken}`,
+      `auth:blacklist:${hashToken(rawToken)}`,
     );
     if (isBlacklisted) {
       throw new UnauthorizedException(

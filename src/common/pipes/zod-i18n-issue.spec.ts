@@ -139,6 +139,31 @@ describe('translateZodIssue', () => {
     );
   });
 
+  it('should translate custom issue with validation i18nKey and strip i18nKey from args', () => {
+    const issue = {
+      code: 'custom',
+      path: ['password'],
+      message: 'Password too long',
+      params: { i18nKey: 'validation.PASSWORD_MAX_BYTES', maxBytes: 72 },
+    } as unknown as core.$ZodIssue;
+
+    expect(translateZodIssue(issue, {}, t)).toBe(
+      'validation.PASSWORD_MAX_BYTES|{"field":"password","maxBytes":72}',
+    );
+  });
+
+  it('should fallback to INVALID for custom issue without valid validation i18nKey', () => {
+    const issue = {
+      code: 'custom',
+      path: ['password'],
+      message: 'Custom error',
+    } as unknown as core.$ZodIssue;
+
+    expect(translateZodIssue(issue, {}, t)).toBe(
+      'validation.INVALID|{"field":"password"}',
+    );
+  });
+
   it('should translate multiple issues concurrently', () => {
     const issues: core.$ZodIssue[] = [
       { code: 'invalid_format', format: 'email', path: ['email'], message: '' },

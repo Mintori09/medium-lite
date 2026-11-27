@@ -1,0 +1,6 @@
+{
+  "notFound": "Article not found",
+  "forbiddenUpdate": "You do not have permission to update this article",
+  "forbiddenDelete": "You do not have permission to delete this article",
+  "emptyUpdate": "At least one field must be provided for update"
+}

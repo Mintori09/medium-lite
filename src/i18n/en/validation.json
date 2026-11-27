@@ -1,0 +1,13 @@
+{
+  "REQUIRED": "{field} is required",
+  "INVALID_TYPE": "{field} has an invalid type",
+  "INVALID_EMAIL": "Email is invalid",
+  "INVALID_URL": "URL is invalid",
+  "INVALID_FORMAT": "{field} has an invalid format",
+  "TOO_SHORT": "{field} must be at least {minimum} characters",
+  "TOO_LONG": "{field} must be at most {maximum} characters",
+  "UNRECOGNIZED_KEYS": "Unrecognized key(s): {keys}",
+  "INVALID_VALUE": "{field} has an invalid value",
+  "PASSWORD_MAX_BYTES": "{field} must not exceed {maxBytes} bytes in UTF-8 encoding",
+  "INVALID": "{field} is invalid"
+}

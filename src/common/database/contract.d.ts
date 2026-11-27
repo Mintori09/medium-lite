@@ -23,9 +23,9 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'380cafc8e1f425119b6786013318ca37365d2fbe1545c40fd27ca7167aa7d6a5'>;
+  StorageHashBase<'af653bae1d6e2d132ffa9147948a5babd486b8bad1573eac32ba1f2c73914450'>;
 export type ExecutionHash =
-  ExecutionHashBase<'aed7900167160f6c32c932bced5c6b92fc4bf22da04f5ae5eec1f47ea3aa5f96'>;
+  ExecutionHashBase<'be4518694bae518ab4b8db7a56e8ebc1024fc6f3139da74958f49a1b1c49c140'>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
 
@@ -321,8 +321,9 @@ export namespace Models {
     updatedAt: FieldOutputTypes['public']['Article']['updatedAt'];
     articleTags: public_ArticleTag[];
     author: public_User;
+    comments: public_Comment[];
     favorites: public_ArticleFavorite[];
-    readonly [RelationKeys]?: 'articleTags' | 'author' | 'favorites';
+    readonly [RelationKeys]?: 'articleTags' | 'author' | 'comments' | 'favorites';
   };
   export type public_ArticleFavorite = {
     articleId: FieldOutputTypes['public']['ArticleFavorite']['articleId'];
@@ -350,6 +351,17 @@ export namespace Models {
     updatedAt: FieldOutputTypes['public']['Attachment']['updatedAt'];
     url: FieldOutputTypes['public']['Attachment']['url'];
     readonly [RelationKeys]?: never;
+  };
+  export type public_Comment = {
+    articleId: FieldOutputTypes['public']['Comment']['articleId'];
+    authorId: FieldOutputTypes['public']['Comment']['authorId'];
+    body: FieldOutputTypes['public']['Comment']['body'];
+    createdAt: FieldOutputTypes['public']['Comment']['createdAt'];
+    id: FieldOutputTypes['public']['Comment']['id'];
+    updatedAt: FieldOutputTypes['public']['Comment']['updatedAt'];
+    article: public_Article;
+    author: public_User;
+    readonly [RelationKeys]?: 'article' | 'author';
   };
   export type public_Follow = {
     createdAt: FieldOutputTypes['public']['Follow']['createdAt'];
@@ -388,6 +400,7 @@ export declare const models: {
     ArticleFavorite: Models.public_ArticleFavorite;
     ArticleTag: Models.public_ArticleTag;
     Attachment: Models.public_Attachment;
+    Comment: Models.public_Comment;
     Follow: Models.public_Follow;
     Tag: Models.public_Tag;
     User: Models.public_User;
@@ -703,6 +716,97 @@ type ContractBase = Omit<
               ];
               foreignKeys: readonly [];
             };
+            readonly Comment: {
+              columns: {
+                readonly articleId: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly authorId: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly body: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly createdAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly typeParams: { readonly precision: 3 };
+                  readonly many: false;
+                };
+                readonly id: {
+                  readonly dataType: 'pg/uuid';
+                  readonly codecId: 'pg/uuid@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly updatedAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly typeParams: { readonly precision: 3 };
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [
+                {
+                  readonly name: 'Comment_articleId_createdAt_id_idx_ef18c7b5';
+                  readonly prefix: 'Comment_articleId_createdAt_id_idx';
+                  readonly columns: readonly ['articleId', 'createdAt', 'id'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'Comment_articleId_idx_3dd188a0';
+                  readonly prefix: 'Comment_articleId_idx';
+                  readonly columns: readonly ['articleId'];
+                  readonly unique: false;
+                },
+                {
+                  readonly name: 'Comment_authorId_idx_e47547ed';
+                  readonly prefix: 'Comment_authorId_idx';
+                  readonly columns: readonly ['authorId'];
+                  readonly unique: false;
+                },
+              ];
+              foreignKeys: readonly [
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Comment';
+                    readonly columns: readonly ['articleId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Article';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+                {
+                  readonly source: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'Comment';
+                    readonly columns: readonly ['authorId'];
+                  };
+                  readonly target: {
+                    readonly namespaceId: 'public' & NamespaceId;
+                    readonly tableName: 'User';
+                    readonly columns: readonly ['id'];
+                  };
+                },
+              ];
+            };
             readonly Follow: {
               columns: {
                 readonly createdAt: {
@@ -890,6 +994,7 @@ type ContractBase = Omit<
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'Attachment';
     };
+    readonly Comment: { readonly namespace: 'public' & NamespaceId; readonly model: 'Comment' };
     readonly Follow: { readonly namespace: 'public' & NamespaceId; readonly model: 'Follow' };
     readonly Tag: { readonly namespace: 'public' & NamespaceId; readonly model: 'Tag' };
     readonly User: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
@@ -964,6 +1069,17 @@ type ContractBase = Omit<
                 readonly on: {
                   readonly localFields: readonly ['authorId'];
                   readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly comments: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Comment';
+                };
+                readonly cardinality: '1:N';
+                readonly on: {
+                  readonly localFields: readonly ['id'];
+                  readonly targetFields: readonly ['articleId'];
                 };
               };
               readonly favorites: {
@@ -1150,6 +1266,77 @@ type ContractBase = Omit<
                 readonly id: { readonly column: 'id' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
                 readonly url: { readonly column: 'url' };
+              };
+            };
+          };
+          readonly Comment: {
+            readonly fields: {
+              readonly articleId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly authorId: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly body: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/uuid@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly typeParams: { readonly precision: 3 };
+                };
+              };
+            };
+            readonly relations: {
+              readonly article: {
+                readonly to: {
+                  readonly namespace: 'public' & NamespaceId;
+                  readonly model: 'Article';
+                };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['articleId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+              readonly author: {
+                readonly to: { readonly namespace: 'public' & NamespaceId; readonly model: 'User' };
+                readonly cardinality: 'N:1';
+                readonly nullable: false;
+                readonly on: {
+                  readonly localFields: readonly ['authorId'];
+                  readonly targetFields: readonly ['id'];
+                };
+              };
+            };
+            readonly storage: {
+              readonly table: 'Comment';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly articleId: { readonly column: 'articleId' };
+                readonly authorId: { readonly column: 'authorId' };
+                readonly body: { readonly column: 'body' };
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly id: { readonly column: 'id' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
               };
             };
           };
@@ -1446,6 +1633,43 @@ type ContractBase = Omit<
           };
           readonly ref: {
             readonly entry: 'Attachment';
+            readonly field: 'updatedAt';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: {
+            readonly id: 'timestampNow';
+            readonly kind: 'generator';
+            readonly params: { readonly precision: 3 };
+          };
+          readonly ref: {
+            readonly entry: 'Comment';
+            readonly field: 'createdAt';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: { readonly id: 'uuidv7'; readonly kind: 'generator' };
+          readonly ref: {
+            readonly entry: 'Comment';
+            readonly field: 'id';
+            readonly namespace: 'public';
+          };
+        },
+        {
+          readonly onCreate: {
+            readonly id: 'timestampNow';
+            readonly kind: 'generator';
+            readonly params: { readonly precision: 3 };
+          };
+          readonly onUpdate: {
+            readonly id: 'timestampNow';
+            readonly kind: 'generator';
+            readonly params: { readonly precision: 3 };
+          };
+          readonly ref: {
+            readonly entry: 'Comment';
             readonly field: 'updatedAt';
             readonly namespace: 'public';
           };

@@ -10,6 +10,7 @@ export type I18nTranslations = {
         "forbiddenUpdate": string;
         "forbiddenDelete": string;
         "emptyUpdate": string;
+        "invalidSlug": string;
     };
     "attachments": {
         "INVALID_FILE_TYPE": string;
@@ -30,6 +31,12 @@ export type I18nTranslations = {
         "TOKEN_EXPIRED": string;
         "USER_INACTIVE_OR_NOT_FOUND": string;
         "REFRESH_TOKEN_MISSING": string;
+    };
+    "comments": {
+        "notFound": string;
+        "authorNotFound": string;
+        "forbiddenDelete": string;
+        "bodyTooLong": string;
     };
     "profiles": {
         "USER_NOT_FOUND": string;

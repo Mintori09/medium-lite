@@ -2,5 +2,6 @@
   "notFound": "Không tìm thấy bài viết",
   "forbiddenUpdate": "Bạn không có quyền chỉnh sửa bài viết này",
   "forbiddenDelete": "Bạn không có quyền xóa bài viết này",
-  "emptyUpdate": "Cần cung cấp ít nhất một trường để cập nhật"
+  "emptyUpdate": "Cần cung cấp ít nhất một trường để cập nhật",
+  "invalidSlug": "Slug bài viết không hợp lệ"
 }

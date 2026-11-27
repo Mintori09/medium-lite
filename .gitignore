@@ -49,3 +49,4 @@ docs
 # Local uploads
 public/uploads/
 public/uploads-test/
+.worktrees/

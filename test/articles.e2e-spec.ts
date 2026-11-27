@@ -1,8 +1,6 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Test, TestingModule } from '@nestjs/testing';
-import cookieParser from 'cookie-parser';
 import request from 'supertest';
-import { AppModule } from '../src/app.module.js';
+import { createE2EApp } from './helpers/e2e-app.helper.js';
 
 describe('Articles & Tags (e2e)', () => {
   let app: NestExpressApplication;
@@ -25,13 +23,7 @@ describe('Articles & Tags (e2e)', () => {
   let slugA = '';
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication<NestExpressApplication>();
-    app.use(cookieParser());
-    await app.init();
+    app = await createE2EApp();
 
     await request(app.getHttpServer())
       .post('/auth/register')
@@ -56,7 +48,9 @@ describe('Articles & Tags (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it('POST /articles - rejects unauthenticated request with 401', async () => {

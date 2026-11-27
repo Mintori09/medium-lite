@@ -1,11 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
-import { AppModule } from './../src/app.module.js';
 import { env } from '../src/common/configs/env.config.js';
+import { createE2EApp } from './helpers/e2e-app.helper.js';
 import { getI18n } from './helpers/i18n-test.helper.js';
 
 describe('Auth System (e2e)', () => {
@@ -22,17 +20,13 @@ describe('Auth System (e2e)', () => {
   let refreshToken = '';
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.use(cookieParser());
-    await app.init();
+    app = await createE2EApp();
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it('/auth/register (POST) - should reject invalid password (strength rules)', async () => {

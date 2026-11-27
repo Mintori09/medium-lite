@@ -1,16 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import cookieParser from 'cookie-parser';
-import fs from 'node:fs/promises';
 import path from 'node:path';
 import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { env } from '../src/common/configs/env.config.js';
+import { cleanupTestUploads } from './helpers/db-test.helper.js';
 import { getI18n } from './helpers/i18n-test.helper.js';
 
 const VALID_PNG_BUFFER = Buffer.from([
-  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d,
-  0x49, 0x48, 0x44, 0x52,
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49,
+  0x48, 0x44, 0x52,
 ]);
 
 describe('Users & Profiles (e2e)', () => {
@@ -70,8 +70,13 @@ describe('Users & Profiles (e2e)', () => {
   });
 
   afterAll(async () => {
-    await app.close();
-    await fs.rm(path.resolve(env.UPLOAD_DIR), { recursive: true, force: true });
+    try {
+      if (app) {
+        await app.close();
+      }
+    } finally {
+      await cleanupTestUploads();
+    }
   });
 
   describe('PATCH /users/me', () => {
@@ -119,10 +124,14 @@ describe('Users & Profiles (e2e)', () => {
       await request(app.getHttpServer())
         .patch('/users/me')
         .set('Authorization', `Bearer ${tokenA}`)
-        .attach('avatar', Buffer.from('<html><script>alert(1)</script></html>'), {
-          filename: 'avatar.html',
-          contentType: 'image/png',
-        })
+        .attach(
+          'avatar',
+          Buffer.from('<html><script>alert(1)</script></html>'),
+          {
+            filename: 'avatar.html',
+            contentType: 'image/png',
+          },
+        )
         .expect(400);
     });
 
@@ -205,37 +214,51 @@ describe('Users & Profiles (e2e)', () => {
         .post(`/profiles/${userB.username}/follow`)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
-      expect((follow1.body as { profile: { following: boolean } }).profile.following).toBe(true);
+      expect(
+        (follow1.body as { profile: { following: boolean } }).profile.following,
+      ).toBe(true);
 
       const follow2 = await request(app.getHttpServer())
         .post(`/profiles/${userB.username}/follow`)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
-      expect((follow2.body as { profile: { following: boolean } }).profile.following).toBe(true);
+      expect(
+        (follow2.body as { profile: { following: boolean } }).profile.following,
+      ).toBe(true);
 
       const getAsA = await request(app.getHttpServer())
         .get(`/profiles/${userB.username}`)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
-      expect((getAsA.body as { profile: { following: boolean } }).profile.following).toBe(true);
+      expect(
+        (getAsA.body as { profile: { following: boolean } }).profile.following,
+      ).toBe(true);
 
       const getAsB = await request(app.getHttpServer())
         .get(`/profiles/${userA.username}`)
         .set('Authorization', `Bearer ${tokenB}`)
         .expect(200);
-      expect((getAsB.body as { profile: { following: boolean } }).profile.following).toBe(false);
+      expect(
+        (getAsB.body as { profile: { following: boolean } }).profile.following,
+      ).toBe(false);
 
       const unfollow1 = await request(app.getHttpServer())
         .delete(`/profiles/${userB.username}/follow`)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
-      expect((unfollow1.body as { profile: { following: boolean } }).profile.following).toBe(false);
+      expect(
+        (unfollow1.body as { profile: { following: boolean } }).profile
+          .following,
+      ).toBe(false);
 
       const unfollow2 = await request(app.getHttpServer())
         .delete(`/profiles/${userB.username}/follow`)
         .set('Authorization', `Bearer ${tokenA}`)
         .expect(200);
-      expect((unfollow2.body as { profile: { following: boolean } }).profile.following).toBe(false);
+      expect(
+        (unfollow2.body as { profile: { following: boolean } }).profile
+          .following,
+      ).toBe(false);
     });
   });
 });

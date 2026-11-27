@@ -1,27 +1,21 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
-import cookieParser from 'cookie-parser';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { AppModule } from '../src/app.module.js';
+import { createE2EApp } from './helpers/e2e-app.helper.js';
 import { getI18n } from './helpers/i18n-test.helper.js';
 
 describe('i18n Resolvers & Translations (e2e)', () => {
   let app: INestApplication<App>;
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.use(cookieParser());
-    await app.init();
+    app = await createE2EApp();
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   describe('Validation Errors Translation', () => {
@@ -40,10 +34,16 @@ describe('i18n Resolvers & Translations (e2e)', () => {
         getI18n('vi', 'validation.INVALID_EMAIL'),
       );
       expect(res.body.message).toContain(
-        getI18n('vi', 'validation.TOO_SHORT', { field: 'username', minimum: 3 }),
+        getI18n('vi', 'validation.TOO_SHORT', {
+          field: 'username',
+          minimum: 3,
+        }),
       );
       expect(res.body.message).toContain(
-        getI18n('vi', 'validation.TOO_SHORT', { field: 'password', minimum: 12 }),
+        getI18n('vi', 'validation.TOO_SHORT', {
+          field: 'password',
+          minimum: 12,
+        }),
       );
     });
 

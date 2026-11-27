@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -8,7 +7,6 @@ import {
   HttpStatus,
   Param,
   ParseUUIDPipe,
-  type PipeTransform,
   Post,
   Query,
 } from '@nestjs/common';
@@ -26,12 +24,17 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
+import {
+  COMMENT_CREATE_THROTTLE_LIMIT,
+  THROTTLE_TTL_MS,
+} from '../../common/constants/throttle.constants.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { OptionalAuth } from '../../common/decorators/optional-auth.decorator.js';
 import {
   ErrorResponseDto,
   ValidationErrorResponseDto,
 } from '../../common/dto/error-response.dto.js';
+import { ParseSlugPipe } from '../../common/pipes/parse-slug.pipe.js';
 import { CommentsService } from './comments.service.js';
 import {
   MultipleCommentsResponseDto,
@@ -40,24 +43,15 @@ import {
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { ListCommentsQueryDto } from './dto/list-comments-query.dto.js';
 
-const SLUG_REGEX = /^[a-zA-Z0-9_-]{1,200}$/;
-
-class ParseSlugPipe implements PipeTransform<string, string> {
-  transform(value: string): string {
-    if (typeof value !== 'string' || !SLUG_REGEX.test(value)) {
-      throw new BadRequestException('Invalid article slug');
-    }
-    return value;
-  }
-}
-
 @ApiTags('Comments')
 @Controller('articles/:slug/comments')
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   @Post()
-  @Throttle({ default: { limit: 10, ttl: 60000 } })
+  @Throttle({
+    default: { limit: COMMENT_CREATE_THROTTLE_LIMIT, ttl: THROTTLE_TTL_MS },
+  })
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Add a comment to an article' })
   @ApiParam({ name: 'slug', description: 'Article slug' })
@@ -104,12 +98,10 @@ export class CommentsController {
   })
   findAll(
     @Param('slug', ParseSlugPipe) slug: string,
+    @Query() query: ListCommentsQueryDto,
     @CurrentUser('userId') userId?: string,
-    @Query() query?: ListCommentsQueryDto,
   ): Promise<MultipleCommentsResponseDto> {
-    return query
-      ? this.commentsService.findAll(slug, userId, query)
-      : this.commentsService.findAll(slug, userId);
+    return this.commentsService.findAll(slug, userId, query);
   }
 
   @Delete(':id')

@@ -29,6 +29,7 @@ import {
   ErrorResponseDto,
   ValidationErrorResponseDto,
 } from '../../common/dto/error-response.dto.js';
+import { ParseSlugPipe } from '../../common/pipes/parse-slug.pipe.js';
 import { ArticlesService } from './articles.service.js';
 import {
   MultipleArticlesResponseDto,
@@ -107,7 +108,7 @@ export class ArticlesController {
     type: ErrorResponseDto,
   })
   findBySlug(
-    @Param('slug') slug: string,
+    @Param('slug', ParseSlugPipe) slug: string,
     @CurrentUser('userId') userId?: string,
   ): Promise<SingleArticleResponseDto> {
     return this.articlesService.findBySlug(slug, userId);
@@ -160,7 +161,7 @@ export class ArticlesController {
     type: ErrorResponseDto,
   })
   update(
-    @Param('slug') slug: string,
+    @Param('slug', ParseSlugPipe) slug: string,
     @CurrentUser('userId') userId: string,
     @Body() dto: UpdateArticleDto,
   ): Promise<SingleArticleResponseDto> {
@@ -188,7 +189,7 @@ export class ArticlesController {
     type: ErrorResponseDto,
   })
   remove(
-    @Param('slug') slug: string,
+    @Param('slug', ParseSlugPipe) slug: string,
     @CurrentUser('userId') userId: string,
   ): Promise<void> {
     return this.articlesService.remove(slug, userId);
@@ -212,7 +213,7 @@ export class ArticlesController {
     type: ErrorResponseDto,
   })
   favorite(
-    @Param('slug') slug: string,
+    @Param('slug', ParseSlugPipe) slug: string,
     @CurrentUser('userId') userId: string,
   ): Promise<SingleArticleResponseDto> {
     return this.articlesService.favorite(slug, userId);
@@ -236,7 +237,7 @@ export class ArticlesController {
     type: ErrorResponseDto,
   })
   unfavorite(
-    @Param('slug') slug: string,
+    @Param('slug', ParseSlugPipe) slug: string,
     @CurrentUser('userId') userId: string,
   ): Promise<SingleArticleResponseDto> {
     return this.articlesService.unfavorite(slug, userId);

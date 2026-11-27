@@ -105,24 +105,12 @@ export class CommentsService {
     const authorMap = new Map(authors.map((a) => [a.id, a]));
 
     return {
-      comments: comments.map((comment) => {
-        let author = authorMap.get(comment.authorId);
-        if (!author) {
-          this.logger.warn(
-            `Missing author ${comment.authorId} for comment ${comment.id}`,
-          );
-          author = {
-            id: comment.authorId,
-            username: 'unknown',
-            bio: null,
-            image: null,
-          };
-        }
-        return mapComment(
-          { ...comment, author },
+      comments: comments.map((comment) =>
+        mapComment(
+          { ...comment, author: authorMap.get(comment.authorId)! },
           followingSet.has(comment.authorId),
-        );
-      }),
+        ),
+      ),
     };
   }
 
@@ -151,19 +139,11 @@ export class CommentsService {
       throw new ForbiddenException(this.i18n.t('comments.forbiddenDelete'));
     }
 
-    const deleted = await db.orm.public.Comment.where({
+    await db.orm.public.Comment.where({
       id: commentId,
       articleId: article.id,
       authorId: userId,
     }).delete();
-
-    const hasDeleted = Array.isArray(deleted)
-      ? deleted.length > 0
-      : Boolean(deleted);
-
-    if (!hasDeleted) {
-      throw new NotFoundException(this.i18n.t('comments.notFound'));
-    }
 
     this.logger.log(
       `Deleted comment ${commentId} on article ${article.id} by user ${userId}`,

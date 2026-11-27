@@ -10,6 +10,7 @@ export type I18nTranslations = {
         "forbiddenUpdate": string;
         "forbiddenDelete": string;
         "emptyUpdate": string;
+        "invalidSlug": string;
     };
     "attachments": {
         "INVALID_FILE_TYPE": string;

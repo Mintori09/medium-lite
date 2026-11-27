@@ -40,13 +40,15 @@ describe('CommentsController', () => {
 
   it('should delegate findAll to CommentsService', async () => {
     const expected = { comments: [] };
+    const query = { limit: 20, offset: 0 };
     mockCommentsService.findAll.mockResolvedValue(expected);
 
-    const result = await controller.findAll('slug-1', 'user-1');
+    const result = await controller.findAll('slug-1', query, 'user-1');
 
     expect(mockCommentsService.findAll).toHaveBeenCalledWith(
       'slug-1',
       'user-1',
+      query,
     );
     expect(result).toBe(expected);
   });

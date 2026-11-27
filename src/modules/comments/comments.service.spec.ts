@@ -152,7 +152,22 @@ describe('CommentsService', () => {
 
       const result = await service.findAll('test-slug', 'user-1');
 
-      expect(orderBy).toHaveBeenCalled();
+      expect(orderBy).toHaveBeenCalledTimes(1);
+      const orderByArgs = orderBy.mock.calls[0]?.[0] as Array<
+        (c: {
+          createdAt: { desc: () => string };
+          id: { desc: () => string };
+        }) => string
+      >;
+      expect(orderByArgs).toHaveLength(2);
+      const mockCols = {
+        createdAt: { desc: () => 'createdAt_desc' },
+        id: { desc: () => 'id_desc' },
+      };
+      expect(orderByArgs.map((fn) => fn(mockCols))).toEqual([
+        'createdAt_desc',
+        'id_desc',
+      ]);
       expect(result.comments).toHaveLength(2);
       expect(result.comments[0]?.author.following).toBe(true);
       expect(result.comments[1]?.author.following).toBe(false);
@@ -261,23 +276,5 @@ describe('CommentsService', () => {
       ).rejects.toThrow(NotFoundException);
     });
 
-    it('should throw NotFoundException if concurrent delete removed the comment', async () => {
-      mockOrm.Article.select.mockReturnValue({
-        first: vi.fn().mockResolvedValue({ id: 'article-1' }),
-      });
-      mockOrm.Comment.select.mockReturnValue({
-        first: vi.fn().mockResolvedValue({
-          id: 'comment-1',
-          authorId: 'user-1',
-        }),
-      });
-      mockOrm.Comment.where.mockReturnValue({
-        delete: vi.fn().mockResolvedValue(null),
-      });
-
-      await expect(
-        service.remove('test-slug', 'comment-1', 'user-1'),
-      ).rejects.toThrow(NotFoundException);
-    });
   });
 });

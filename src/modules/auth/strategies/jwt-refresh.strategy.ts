@@ -5,6 +5,7 @@ import { I18nContext, I18nService } from 'nestjs-i18n';
 import type { Request } from 'express';
 import { env } from '../../../common/configs/env.config.js';
 import type { I18nTranslations } from '../../../generated/i18n.generated.js';
+import { REFRESH_TOKEN_COOKIE } from '../auth.constants.js';
 import type {
   JwtPayload,
   ActiveUserData,
@@ -18,8 +19,8 @@ export class JwtRefreshStrategy extends PassportStrategy(
   constructor(private readonly i18n: I18nService<I18nTranslations>) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (req: Request) => req?.cookies?.refreshToken ?? null,
-        ExtractJwt.fromBodyField('refreshToken'),
+        (req: Request) =>
+          (req?.cookies?.[REFRESH_TOKEN_COOKIE] as string | undefined) ?? null,
       ]),
       ignoreExpiration: false,
       secretOrKey: env.JWT_REFRESH_SECRET,
@@ -28,7 +29,9 @@ export class JwtRefreshStrategy extends PassportStrategy(
   }
 
   async validate(req: Request, payload: JwtPayload): Promise<ActiveUserData> {
-    const refreshToken = req?.cookies?.refreshToken || req?.body?.refreshToken;
+    const refreshToken = req?.cookies?.[REFRESH_TOKEN_COOKIE] as
+      | string
+      | undefined;
     if (!refreshToken) {
       throw new UnauthorizedException(
         this.i18n.translate('auth.REFRESH_TOKEN_MISSING', {

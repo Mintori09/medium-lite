@@ -9,8 +9,12 @@ import type { UsersService } from '../users/users.service.js';
 import type { JwtService } from '@nestjs/jwt';
 import type { RedisService } from '../../redis/redis.service.js';
 import type { Models } from '../../common/database/contract.d.js';
+import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { getI18n } from '../../../test/helpers/i18n-test.helper.js';
+
+const sha256 = (value: string) =>
+  crypto.createHash('sha256').update(value).digest('hex');
 
 const createMockUser = (
   overrides?: Partial<Models.public_User>,
@@ -133,6 +137,102 @@ describe('AuthService', () => {
         }),
       ).rejects.toThrow(ConflictException);
     });
+
+    it('should throw ConflictException on concurrent email unique violation (23505)', async () => {
+      vi.mocked(mockUsersService.findByEmail!).mockResolvedValue(null);
+      vi.mocked(mockUsersService.findByUsername!).mockResolvedValue(null);
+      vi.mocked(mockUsersService.create!).mockRejectedValue({
+        sqlState: '23505',
+        constraint: 'User_email_key',
+      });
+
+      await expect(
+        authService.register({
+          email: 'test@example.com',
+          username: 'testuser',
+          password: 'password123',
+        }),
+      ).rejects.toThrow(
+        new ConflictException(getI18n('en', 'auth.EMAIL_EXISTS')),
+      );
+    });
+
+    it('should throw ConflictException on concurrent username unique violation (23505)', async () => {
+      vi.mocked(mockUsersService.findByEmail!).mockResolvedValue(null);
+      vi.mocked(mockUsersService.findByUsername!).mockResolvedValue(null);
+      vi.mocked(mockUsersService.create!).mockRejectedValue({
+        cause: {
+          sqlState: '23505',
+          constraint: 'User_username_key',
+        },
+      });
+
+      await expect(
+        authService.register({
+          email: 'test@example.com',
+          username: 'testuser',
+          password: 'password123',
+        }),
+      ).rejects.toThrow(
+        new ConflictException(getI18n('en', 'auth.USERNAME_EXISTS')),
+      );
+    });
+
+    it('should rethrow non-unique database errors during register', async () => {
+      vi.mocked(mockUsersService.findByEmail!).mockResolvedValue(null);
+      vi.mocked(mockUsersService.findByUsername!).mockResolvedValue(null);
+      vi.mocked(mockUsersService.create!).mockRejectedValue(
+        new Error('Connection lost'),
+      );
+
+      await expect(
+        authService.register({
+          email: 'test@example.com',
+          username: 'testuser',
+          password: 'password123',
+        }),
+      ).rejects.toThrow('Connection lost');
+    });
+
+    it('should disambiguate 23505 without constraint name by checking username/email', async () => {
+      vi.mocked(mockUsersService.findByEmail!).mockResolvedValue(null);
+      vi.mocked(mockUsersService.findByUsername!)
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce(createMockUser());
+      vi.mocked(mockUsersService.create!).mockRejectedValue({
+        sqlState: '23505',
+      });
+
+      await expect(
+        authService.register({
+          email: 'test@example.com',
+          username: 'testuser',
+          password: 'password123',
+        }),
+      ).rejects.toThrow(
+        new ConflictException(getI18n('en', 'auth.USERNAME_EXISTS')),
+      );
+    });
+
+    it('should still throw ConflictException if 23505 disambiguation lookup fails', async () => {
+      vi.mocked(mockUsersService.findByEmail!).mockResolvedValue(null);
+      vi.mocked(mockUsersService.findByUsername!)
+        .mockResolvedValueOnce(null)
+        .mockRejectedValueOnce(new Error('Lookup timeout'));
+      vi.mocked(mockUsersService.create!).mockRejectedValue({
+        sqlState: '23505',
+      });
+
+      await expect(
+        authService.register({
+          email: 'test@example.com',
+          username: 'testuser',
+          password: 'password123',
+        }),
+      ).rejects.toThrow(
+        new ConflictException(getI18n('en', 'auth.EMAIL_EXISTS')),
+      );
+    });
   });
 
   describe('login', () => {
@@ -161,7 +261,7 @@ describe('AuthService', () => {
       });
       expect(mockRedisService.set).toHaveBeenCalledWith(
         'auth:refresh_token:user-1',
-        'mock-refresh-token',
+        sha256('mock-refresh-token'),
         604800,
       );
     });
@@ -231,16 +331,21 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should throw UnauthorizedException if stored refresh token does not match incoming token', async () => {
-      vi.mocked(mockRedisService.get!).mockResolvedValue('different-token');
+    it('should throw UnauthorizedException and revoke stored token if stored refresh token does not match incoming token', async () => {
+      vi.mocked(mockRedisService.get!).mockResolvedValue(
+        sha256('different-token'),
+      );
 
       await expect(
         authService.refreshTokens('user-1', 'incoming-refresh-token'),
       ).rejects.toThrow(UnauthorizedException);
+      expect(mockRedisService.del).toHaveBeenCalledWith(
+        'auth:refresh_token:user-1',
+      );
     });
 
     it('should throw UnauthorizedException if user is not found', async () => {
-      vi.mocked(mockRedisService.get!).mockResolvedValue('valid-token');
+      vi.mocked(mockRedisService.get!).mockResolvedValue(sha256('valid-token'));
       vi.mocked(mockUsersService.findById!).mockResolvedValue(null);
 
       await expect(
@@ -249,7 +354,7 @@ describe('AuthService', () => {
     });
 
     it('should throw UnauthorizedException if user is inactive', async () => {
-      vi.mocked(mockRedisService.get!).mockResolvedValue('valid-token');
+      vi.mocked(mockRedisService.get!).mockResolvedValue(sha256('valid-token'));
       vi.mocked(mockUsersService.findById!).mockResolvedValue(
         createMockUser({ isActive: false }),
       );
@@ -259,8 +364,8 @@ describe('AuthService', () => {
       ).rejects.toThrow(UnauthorizedException);
     });
 
-    it('should generate new tokens, save refresh token to Redis and return tokens when valid', async () => {
-      vi.mocked(mockRedisService.get!).mockResolvedValue('valid-token');
+    it('should generate new tokens, save hashed refresh token to Redis and return tokens when valid', async () => {
+      vi.mocked(mockRedisService.get!).mockResolvedValue(sha256('valid-token'));
       vi.mocked(mockUsersService.findById!).mockResolvedValue(
         createMockUser({ id: 'user-1', isActive: true }),
       );
@@ -273,9 +378,29 @@ describe('AuthService', () => {
       });
       expect(mockRedisService.set).toHaveBeenCalledWith(
         'auth:refresh_token:user-1',
-        'mock-refresh-token',
+        sha256('mock-refresh-token'),
         604800,
       );
+    });
+
+    it('should use decoded exp from signed refresh token for Redis TTL when available', async () => {
+      const futureExp = Math.floor(Date.now() / 1000) + 12345;
+      mockJwtService.decode = vi.fn().mockReturnValue({ exp: futureExp });
+      vi.mocked(mockRedisService.get!).mockResolvedValue(sha256('valid-token'));
+      vi.mocked(mockUsersService.findById!).mockResolvedValue(
+        createMockUser({ id: 'user-1', isActive: true }),
+      );
+
+      await authService.refreshTokens('user-1', 'valid-token');
+
+      expect(mockRedisService.set).toHaveBeenCalledWith(
+        'auth:refresh_token:user-1',
+        sha256('mock-refresh-token'),
+        expect.any(Number),
+      );
+      const ttlArg = vi.mocked(mockRedisService.set!).mock.calls[0][2] as number;
+      expect(ttlArg).toBeGreaterThanOrEqual(12340);
+      expect(ttlArg).toBeLessThanOrEqual(12345);
     });
   });
 
@@ -294,7 +419,7 @@ describe('AuthService', () => {
 
       expect(result).toEqual({ message: getI18n('en', 'auth.LOGOUT_SUCCESS') });
       expect(mockRedisService.set).toHaveBeenCalledWith(
-        'auth:blacklist:valid-access-token',
+        `auth:blacklist:${sha256('valid-access-token')}`,
         '1',
         expect.any(Number),
       );
@@ -303,7 +428,26 @@ describe('AuthService', () => {
       );
     });
 
-    it('should use default 15m TTL when exp is missing or expired, and skip blacklist if accessToken is empty', async () => {
+    it('should use configured access token TTL when exp is missing or expired', async () => {
+      const result = await authService.logout({
+        userId: 'user-1',
+        email: 'test@example.com',
+        username: 'testuser',
+        accessToken: 'fallback-token',
+      } as any);
+
+      expect(result).toEqual({ message: getI18n('en', 'auth.LOGOUT_SUCCESS') });
+      expect(mockRedisService.set).toHaveBeenCalledWith(
+        `auth:blacklist:${sha256('fallback-token')}`,
+        '1',
+        900,
+      );
+      expect(mockRedisService.del).toHaveBeenCalledWith(
+        'auth:refresh_token:user-1',
+      );
+    });
+
+    it('should skip blacklist if accessToken is empty', async () => {
       const result = await authService.logout({
         userId: 'user-1',
         email: 'test@example.com',

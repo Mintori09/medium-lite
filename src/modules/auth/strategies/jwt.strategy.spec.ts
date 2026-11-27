@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtStrategy } from './jwt.strategy.js';
+import { hashToken } from '../../../common/utils/token.util.js';
 import type { UsersService } from '../../users/users.service.js';
 import type { RedisService } from '../../../redis/redis.service.js';
 import type { Request } from 'express';
@@ -45,7 +46,7 @@ describe('JwtStrategy', () => {
     ).rejects.toThrow(UnauthorizedException);
 
     expect(mockRedisService.get).toHaveBeenCalledWith(
-      'auth:blacklist:blacklisted-token',
+      `auth:blacklist:${hashToken('blacklisted-token')}`,
     );
   });
 

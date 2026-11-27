@@ -46,6 +46,7 @@ export type I18nTranslations = {
         "TOO_LONG": string;
         "UNRECOGNIZED_KEYS": string;
         "INVALID_VALUE": string;
+        "PASSWORD_MAX_BYTES": string;
         "INVALID": string;
     };
 };

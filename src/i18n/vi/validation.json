@@ -8,5 +8,6 @@
   "TOO_LONG": "{field} không được vượt quá {maximum} ký tự",
   "UNRECOGNIZED_KEYS": "Các trường không hợp lệ: {keys}",
   "INVALID_VALUE": "{field} có giá trị không hợp lệ",
+  "PASSWORD_MAX_BYTES": "{field} không được vượt quá {maxBytes} byte (UTF-8)",
   "INVALID": "{field} không hợp lệ"
 }

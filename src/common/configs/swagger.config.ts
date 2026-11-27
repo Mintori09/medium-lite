@@ -1,6 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
+import { REFRESH_TOKEN_COOKIE } from '../../modules/auth/auth.constants.js';
 import { env } from './env.config.js';
 
 export function createSwaggerDocumentBuilder(): DocumentBuilder {
@@ -20,6 +21,7 @@ export function createSwaggerDocumentBuilder(): DocumentBuilder {
       },
       'bearer',
     )
+    .addCookieAuth(REFRESH_TOKEN_COOKIE, undefined, REFRESH_TOKEN_COOKIE)
     .addGlobalParameters({
       name: 'accept-language',
       in: 'header',

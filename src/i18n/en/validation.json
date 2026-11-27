@@ -8,5 +8,6 @@
   "TOO_LONG": "{field} must be at most {maximum} characters",
   "UNRECOGNIZED_KEYS": "Unrecognized key(s): {keys}",
   "INVALID_VALUE": "{field} has an invalid value",
+  "PASSWORD_MAX_BYTES": "{field} must not exceed {maxBytes} bytes in UTF-8 encoding",
   "INVALID": "{field} is invalid"
 }

@@ -1,17 +1,22 @@
 import {
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { I18nContext, I18nService } from 'nestjs-i18n';
+import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
 import {
   PASSWORD_HASH_ROUNDS,
   getRefreshTokenKey,
 } from '../../common/constants/auth.constants.js';
 import { env } from '../../common/configs/env.config.js';
+import { getUniqueViolationConstraint } from '../../common/utils/database-error.util.js';
+import { parseDurationToSeconds } from '../../common/utils/duration.util.js';
+import { hashToken } from '../../common/utils/token.util.js';
 import type { I18nTranslations } from '../../generated/i18n.generated.js';
 import { RedisService } from '../../redis/redis.service.js';
 import { UsersService } from '../users/users.service.js';
@@ -26,6 +31,8 @@ import type {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     private readonly usersService: UsersService,
     private readonly jwtService: JwtService,
@@ -55,13 +62,55 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(dto.password, PASSWORD_HASH_ROUNDS);
 
-    await this.usersService.create({
-      email,
-      username: dto.username,
-      passwordHash,
-      bio: dto.bio,
-      image: dto.image,
-    });
+    try {
+      await this.usersService.create({
+        email,
+        username: dto.username,
+        passwordHash,
+        bio: dto.bio,
+        image: dto.image,
+      });
+    } catch (error) {
+      const constraint = getUniqueViolationConstraint(error);
+      if (constraint !== null) {
+        this.logger.warn(
+          `Concurrent registration unique violation (${constraint || 'unknown constraint'})`,
+        );
+        const lowerConstraint = constraint.toLowerCase();
+        if (lowerConstraint.includes('username')) {
+          throw new ConflictException(this.t('auth.USERNAME_EXISTS'));
+        }
+        if (lowerConstraint.includes('email')) {
+          throw new ConflictException(this.t('auth.EMAIL_EXISTS'));
+        }
+        try {
+          const [conflictByUsername, conflictByEmail] = await Promise.all([
+            this.usersService.findByUsername(dto.username),
+            this.usersService.findByEmail(email),
+          ]);
+          if (conflictByUsername && !conflictByEmail) {
+            throw new ConflictException(this.t('auth.USERNAME_EXISTS'));
+          }
+        } catch (lookupError) {
+          if (lookupError instanceof ConflictException) {
+            throw lookupError;
+          }
+          this.logger.warn(
+            `Failed to disambiguate unique violation during registration: ${
+              lookupError instanceof Error
+                ? lookupError.message
+                : String(lookupError)
+            }`,
+          );
+        }
+        throw new ConflictException(this.t('auth.EMAIL_EXISTS'));
+      }
+      this.logger.error(
+        'Unexpected error during user registration',
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw error;
+    }
 
     return { message: this.t('auth.REGISTER_SUCCESS') };
   }
@@ -78,6 +127,7 @@ export class AuthService {
     }
 
     if (!user.isActive) {
+      this.logger.warn(`Disabled account login attempt for userId=${user.id}`);
       throw new UnauthorizedException(this.t('auth.ACCOUNT_DISABLED'));
     }
 
@@ -95,8 +145,20 @@ export class AuthService {
     userId: string,
     incomingRefreshToken: string,
   ): Promise<AuthTokens> {
-    const storedToken = await this.redisService.get(this.getRefreshKey(userId));
-    if (!storedToken || storedToken !== incomingRefreshToken) {
+    const storedTokenHash = await this.redisService.get(
+      this.getRefreshKey(userId),
+    );
+    const incomingTokenHash = hashToken(incomingRefreshToken);
+    if (
+      !storedTokenHash ||
+      !this.tokensEqual(storedTokenHash, incomingTokenHash)
+    ) {
+      if (storedTokenHash) {
+        this.logger.warn(
+          `Refresh token mismatch for userId=${userId}; revoking stored refresh token`,
+        );
+        await this.redisService.del(this.getRefreshKey(userId));
+      }
       throw new UnauthorizedException(this.t('auth.REFRESH_TOKEN_INVALID'));
     }
 
@@ -117,12 +179,17 @@ export class AuthService {
 
   async logout(user: ActiveUserData): Promise<{ message: string }> {
     const nowInSeconds = Math.floor(Date.now() / 1000);
+    const fallbackTtlSeconds = parseDurationToSeconds(
+      env.JWT_ACCESS_EXPIRES_IN,
+    );
     const ttlInSeconds =
-      user.exp && user.exp > nowInSeconds ? user.exp - nowInSeconds : 15 * 60;
+      user.exp && user.exp > nowInSeconds
+        ? user.exp - nowInSeconds
+        : fallbackTtlSeconds;
 
     if (user.accessToken) {
       await this.redisService.set(
-        `auth:blacklist:${user.accessToken}`,
+        `auth:blacklist:${hashToken(user.accessToken)}`,
         '1',
         ttlInSeconds,
       );
@@ -170,12 +237,27 @@ export class AuthService {
     userId: string,
     refreshToken: string,
   ): Promise<void> {
-    const ttlSeconds = 7 * 24 * 60 * 60; // 7 ngày
+    const nowInSeconds = Math.floor(Date.now() / 1000);
+    const decoded =
+      typeof this.jwtService.decode === 'function'
+        ? this.jwtService.decode<{ exp?: number }>(refreshToken)
+        : null;
+    const ttlSeconds =
+      decoded?.exp && decoded.exp > nowInSeconds
+        ? decoded.exp - nowInSeconds
+        : parseDurationToSeconds(env.JWT_REFRESH_EXPIRES_IN);
+
     await this.redisService.set(
       this.getRefreshKey(userId),
-      refreshToken,
+      hashToken(refreshToken),
       ttlSeconds,
     );
+  }
+
+  private tokensEqual(a: string, b: string): boolean {
+    const bufA = Buffer.from(a, 'utf8');
+    const bufB = Buffer.from(b, 'utf8');
+    return bufA.length === bufB.length && crypto.timingSafeEqual(bufA, bufB);
   }
 
   private getRefreshKey(userId: string): string {

@@ -7,14 +7,17 @@ import {
   HttpStatus,
   Post,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import type { Response } from 'express';
+import { I18nContext } from 'nestjs-i18n';
+import type { CookieOptions, Response } from 'express';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
   ApiConflictResponse,
+  ApiCookieAuth,
   ApiCreatedResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -36,12 +39,13 @@ import {
   ValidationErrorResponseDto,
 } from '../../common/dto/error-response.dto.js';
 import { env } from '../../common/configs/env.config.js';
+import { parseDurationToSeconds } from '../../common/utils/duration.util.js';
 import { Public } from '../../common/decorators/public.decorator.js';
 import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 import { JwtRefreshGuard } from '../../common/guards/jwt-refresh.guard.js';
+import type { I18nTranslations } from '../../generated/i18n.generated.js';
+import { REFRESH_TOKEN_COOKIE } from './auth.constants.js';
 import type { ActiveUserData } from './interfaces/jwt-payload.interface.js';
-
-const REFRESH_TOKEN_COOKIE = 'refreshToken';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -79,10 +83,11 @@ export class AuthController {
   @Header('Expires', '0')
   @Post('login')
   @ApiOperation({
-    summary: 'Authenticate user and return Access/Refresh tokens',
+    summary:
+      'Authenticate user, return Access token, and set HttpOnly Refresh token cookie',
   })
   @ApiOkResponse({
-    description: 'Login successful, returns tokens',
+    description: 'Login successful, returns access token',
     type: AuthTokensDto,
   })
   @ApiBadRequestResponse({
@@ -103,19 +108,22 @@ export class AuthController {
   ) {
     const tokens = await this.authService.login(dto);
     this.setRefreshTokenCookie(res, tokens.refreshToken);
-    return tokens;
+    return { accessToken: tokens.accessToken };
   }
 
   @Public()
   @UseGuards(JwtRefreshGuard)
+  @ApiCookieAuth(REFRESH_TOKEN_COOKIE)
   @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
   @Header('Expires', '0')
   @Post('refresh')
-  @ApiOperation({ summary: 'Refresh access token using refresh token' })
+  @ApiOperation({
+    summary: 'Refresh access token using HttpOnly refresh token cookie',
+  })
   @ApiOkResponse({
-    description: 'Tokens refreshed successfully',
+    description: 'Access token refreshed successfully',
     type: AuthTokensDto,
   })
   @ApiUnauthorizedResponse({
@@ -130,12 +138,19 @@ export class AuthController {
     @CurrentUser() user: ActiveUserData,
     @Res({ passthrough: true }) res: Response,
   ) {
+    if (!user.refreshToken) {
+      throw new UnauthorizedException(
+        I18nContext.current<I18nTranslations>()?.t(
+          'auth.REFRESH_TOKEN_MISSING',
+        ) ?? 'Refresh token is missing',
+      );
+    }
     const tokens = await this.authService.refreshTokens(
       user.userId,
-      user.refreshToken!,
+      user.refreshToken,
     );
     this.setRefreshTokenCookie(res, tokens.refreshToken);
-    return tokens;
+    return { accessToken: tokens.accessToken };
   }
 
   @HttpCode(HttpStatus.OK)
@@ -164,17 +179,24 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.logout(user);
-    res.clearCookie(REFRESH_TOKEN_COOKIE, { path: '/auth' });
+    res.clearCookie(REFRESH_TOKEN_COOKIE, this.getRefreshTokenCookieOptions());
     return result;
   }
 
-  private setRefreshTokenCookie(res: Response, refreshToken: string): void {
-    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+  private getRefreshTokenCookieOptions(): CookieOptions {
+    return {
       httpOnly: true,
       secure: env.NODE_ENV === 'production',
       sameSite: 'strict',
       path: '/auth',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+    };
+  }
+
+  private setRefreshTokenCookie(res: Response, refreshToken: string): void {
+    const maxAgeMs = parseDurationToSeconds(env.JWT_REFRESH_EXPIRES_IN) * 1000;
+    res.cookie(REFRESH_TOKEN_COOKIE, refreshToken, {
+      ...this.getRefreshTokenCookieOptions(),
+      maxAge: maxAgeMs,
     });
   }
 

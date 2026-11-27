@@ -19,7 +19,24 @@ describe('Auth System (e2e)', () => {
   };
 
   let accessToken = '';
-  let refreshToken = '';
+  let refreshCookie = '';
+
+  const extractRefreshCookie = (
+    setCookieHeader: string[] | string | undefined,
+  ): string => {
+    const cookies = Array.isArray(setCookieHeader)
+      ? setCookieHeader
+      : setCookieHeader
+        ? [setCookieHeader]
+        : [];
+    const found = cookies.find((cookie) => cookie.startsWith('refreshToken='));
+    expect(found).toBeDefined();
+    expect(found).toContain('HttpOnly');
+    expect(found).toContain('SameSite=Strict');
+    expect(found).toContain('Path=/auth');
+    expect(found).toContain('Max-Age=');
+    return found!.split(';')[0];
+  };
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -55,6 +72,47 @@ describe('Auth System (e2e)', () => {
         password: 'Password1234',
       })
       .expect(400);
+  });
+
+  it('/auth/register (POST) - should reject password exceeding 72 UTF-8 bytes (e.g. Vietnamese multi-byte)', async () => {
+    const resEn = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: `longpw_${uniqueId}@example.com`,
+        username: `user_lpw_${uniqueId}`,
+        password: 'ế'.repeat(25), // 25 chars, 75 UTF-8 bytes
+      })
+      .expect(400);
+
+    expect(JSON.stringify(resEn.body)).toContain('72 bytes');
+
+    const resVi = await request(app.getHttpServer())
+      .post('/auth/register')
+      .set('Accept-Language', 'vi')
+      .send({
+        email: `longpw_vi_${uniqueId}@example.com`,
+        username: `user_lpw_vi_${uniqueId}`,
+        password: 'ế'.repeat(25),
+      })
+      .expect(400);
+
+    expect(JSON.stringify(resVi.body)).toContain('72 byte');
+  });
+
+  it('/auth/register (POST) - should handle concurrent duplicate registrations with 409 instead of 500', async () => {
+    const concurrentUser = {
+      email: `race_${uniqueId}@example.com`,
+      username: `race_${uniqueId}`,
+      password: 'Password1234',
+    };
+
+    const [res1, res2] = await Promise.all([
+      request(app.getHttpServer()).post('/auth/register').send(concurrentUser),
+      request(app.getHttpServer()).post('/auth/register').send(concurrentUser),
+    ]);
+
+    const statuses = [res1.status, res2.status].sort((a, b) => a - b);
+    expect(statuses).toEqual([201, 409]);
   });
 
   it('/auth/register (POST) - should register a new user and normalize email/username', async () => {
@@ -105,7 +163,7 @@ describe('Auth System (e2e)', () => {
     expect(resVi.body.message).toBe(getI18n('vi', 'auth.USERNAME_EXISTS'));
   });
 
-  it('/auth/login (POST) - should login with case-insensitive email and return tokens', async () => {
+  it('/auth/login (POST) - should login with case-insensitive email, return accessToken only, and set HttpOnly refresh cookie', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/login')
       .send({
@@ -115,10 +173,10 @@ describe('Auth System (e2e)', () => {
       .expect(200);
 
     expect(res.body).toHaveProperty('accessToken');
-    expect(res.body).toHaveProperty('refreshToken');
+    expect(res.body).not.toHaveProperty('refreshToken');
 
     accessToken = res.body.accessToken;
-    refreshToken = res.body.refreshToken;
+    refreshCookie = extractRefreshCookie(res.headers['set-cookie']);
   });
 
   it('/auth/me (GET) - should get current user profile and serialize out passwordHash', async () => {
@@ -134,33 +192,41 @@ describe('Auth System (e2e)', () => {
     expect(res.body).not.toHaveProperty('passwordHash');
   });
 
-  it('/auth/refresh (POST) - should reject malformed refresh token with 401', async () => {
+  it('/auth/refresh (POST) - should reject malformed refresh token cookie with 401', async () => {
     await request(app.getHttpServer())
       .post('/auth/refresh')
-      .send({ refreshToken: 'not-a-valid-jwt' })
+      .set('Cookie', 'refreshToken=not-a-valid-jwt')
       .expect(401);
   });
 
-  it('/auth/refresh (POST) - should refresh tokens and rotate stored token', async () => {
+  it('/auth/refresh (POST) - should reject refresh token sent only in body without cookie', async () => {
+    const rawToken = refreshCookie.replace('refreshToken=', '');
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: rawToken })
+      .expect(401);
+  });
+
+  it('/auth/refresh (POST) - should refresh tokens via HttpOnly cookie and rotate stored token', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/refresh')
-      .send({ refreshToken })
+      .set('Cookie', refreshCookie)
       .expect(200);
 
     expect(res.body).toHaveProperty('accessToken');
-    expect(res.body).toHaveProperty('refreshToken');
+    expect(res.body).not.toHaveProperty('refreshToken');
 
-    const oldRefreshToken = refreshToken;
+    const oldRefreshCookie = refreshCookie;
     accessToken = res.body.accessToken;
-    refreshToken = res.body.refreshToken;
+    refreshCookie = extractRefreshCookie(res.headers['set-cookie']);
 
     await request(app.getHttpServer())
       .post('/auth/refresh')
-      .send({ refreshToken: oldRefreshToken })
+      .set('Cookie', oldRefreshCookie)
       .expect(401);
   });
 
-  it('/auth/logout (POST) - should logout and blacklist the access token', async () => {
+  it('/auth/logout (POST) - should logout, clear refresh cookie, and blacklist the access token', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/logout')
       .set('Authorization', `Bearer ${accessToken}`)
@@ -169,6 +235,15 @@ describe('Auth System (e2e)', () => {
     expect(res.body).toEqual({
       message: getI18n('en', 'auth.LOGOUT_SUCCESS'),
     });
+    const setCookies = Array.isArray(res.headers['set-cookie'])
+      ? res.headers['set-cookie']
+      : [];
+    const clearedCookie = setCookies.find((cookie) =>
+      cookie.startsWith('refreshToken=;'),
+    );
+    expect(clearedCookie).toBeDefined();
+    expect(clearedCookie).toContain('HttpOnly');
+    expect(clearedCookie).toContain('Path=/auth');
   });
 
   it('/auth/me (GET) - should reject blacklisted access token after logout (bilingual)', async () => {

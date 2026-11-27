@@ -28,6 +28,8 @@ const createMockUser = (
   isActive: true,
   createdAt: new Date(),
   updatedAt: new Date(),
+  followers: [],
+  following: [],
   ...overrides,
 });
 

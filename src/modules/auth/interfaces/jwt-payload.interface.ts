@@ -23,4 +23,7 @@ export interface AuthTokens {
   refreshToken: string;
 }
 
-export type CurrentUserResponse = Omit<Models.public_User, 'passwordHash'>;
+export type CurrentUserResponse = Omit<
+  Models.public_User,
+  'passwordHash' | 'followers' | 'following'
+>;

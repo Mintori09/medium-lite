@@ -9,6 +9,10 @@ import { JwtService } from '@nestjs/jwt';
 import { I18nContext, I18nService } from 'nestjs-i18n';
 import crypto from 'node:crypto';
 import bcrypt from 'bcrypt';
+import {
+  PASSWORD_HASH_ROUNDS,
+  getRefreshTokenKey,
+} from '../../common/constants/auth.constants.js';
 import { env } from '../../common/configs/env.config.js';
 import { getUniqueViolationConstraint } from '../../common/utils/database-error.util.js';
 import { parseDurationToSeconds } from '../../common/utils/duration.util.js';
@@ -56,7 +60,7 @@ export class AuthService {
       throw new ConflictException(this.t('auth.USERNAME_EXISTS'));
     }
 
-    const passwordHash = await bcrypt.hash(dto.password, 10);
+    const passwordHash = await bcrypt.hash(dto.password, PASSWORD_HASH_ROUNDS);
 
     try {
       await this.usersService.create({
@@ -257,6 +261,6 @@ export class AuthService {
   }
 
   private getRefreshKey(userId: string): string {
-    return `auth:refresh_token:${userId}`;
+    return getRefreshTokenKey(userId);
   }
 }

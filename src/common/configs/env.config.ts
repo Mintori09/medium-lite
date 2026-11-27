@@ -60,6 +60,11 @@ export const envSchema = z.object({
   SWAGGER_DOC_TITLE: z.string().default('NestJs Authentication'),
   SWAGGER_DOC_DESCRIPTION: z.string().default('The NestJs Authentication API'),
   SWAGGER_DOC_VERSION: z.string().default('1.0'),
+
+  // Uploads / Attachments
+  UPLOAD_DIR: z.string().default('public/uploads'),
+  PUBLIC_SERVE_ROOT: z.string().default('/public/uploads'),
+  MAX_AVATAR_SIZE_BYTES: z.coerce.number().int().positive().default(5242880),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);

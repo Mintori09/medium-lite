@@ -201,6 +201,9 @@ export class AuthController {
   }
 
   @Get('me')
+  @Header('Cache-Control', 'no-store')
+  @Header('Pragma', 'no-cache')
+  @Header('Expires', '0')
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get current authenticated user profile',

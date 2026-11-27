@@ -6,7 +6,6 @@ import request from 'supertest';
 import { AppModule } from '../src/app.module.js';
 import { env } from '../src/common/configs/env.config.js';
 import { cleanupTestUploads } from './helpers/db-test.helper.js';
-import { getI18n } from './helpers/i18n-test.helper.js';
 
 const VALID_PNG_BUFFER = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49,
@@ -32,7 +31,6 @@ describe('Users & Profiles (e2e)', () => {
   };
 
   let tokenA = '';
-  let tokenB = '';
   let uploadedAvatarUrl = '';
 
   beforeAll(async () => {
@@ -61,12 +59,6 @@ describe('Users & Profiles (e2e)', () => {
       .send({ email: userA.email, password: userA.password })
       .expect(200);
     tokenA = (loginA.body as { accessToken: string }).accessToken;
-
-    const loginB = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({ email: userB.email, password: userB.password })
-      .expect(200);
-    tokenB = (loginB.body as { accessToken: string }).accessToken;
   });
 
   afterAll(async () => {
@@ -166,99 +158,55 @@ describe('Users & Profiles (e2e)', () => {
 
       await request(app.getHttpServer()).get(uploadedAvatarUrl).expect(404);
     });
-  });
 
-  describe('Profiles & Follow', () => {
-    it('GET /profiles/:username should work anonymously with following=false', async () => {
-      const res = await request(app.getHttpServer())
-        .get(`/profiles/${userB.username}`)
-        .expect(200);
-
-      expect(res.body).toEqual({
-        profile: {
-          username: userB.username,
-          bio: userB.bio,
-          image: null,
-          following: false,
-        },
-      });
-    });
-
-    it('GET /profiles/:username should return 401 when given invalid Bearer token', async () => {
+    it('should require currentPassword when changing password and verify old/new login', async () => {
       await request(app.getHttpServer())
-        .get(`/profiles/${userB.username}`)
-        .set('Authorization', 'Bearer invalid.token.here')
-        .expect(401);
-    });
-
-    it('GET /profiles/:username should return 404 for unknown user', async () => {
-      await request(app.getHttpServer())
-        .get(`/profiles/nonexistent_${uniqueId}`)
-        .expect(404);
-    });
-
-    it('POST /profiles/:username/follow should reject self-follow with 400', async () => {
-      const res = await request(app.getHttpServer())
-        .post(`/profiles/${userA.username}/follow`)
+        .patch('/users/me')
         .set('Authorization', `Bearer ${tokenA}`)
-        .set('Accept-Language', 'vi')
+        .send({ password: 'NewPassword123!' })
         .expect(400);
 
-      expect((res.body as { message: string }).message).toBe(
-        getI18n('vi', 'profiles.CANNOT_FOLLOW_SELF'),
-      );
+      await request(app.getHttpServer())
+        .patch('/users/me')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          currentPassword: 'WrongPassword123!',
+          password: 'NewPassword123!',
+        })
+        .expect(401);
+
+      await request(app.getHttpServer())
+        .patch('/users/me')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          currentPassword: userA.password,
+          password: 'NewPassword123!',
+        })
+        .expect(200);
+
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: userA.email, password: userA.password })
+        .expect(401);
+
+      await request(app.getHttpServer())
+        .post('/auth/login')
+        .send({ email: userA.email, password: 'NewPassword123!' })
+        .expect(200);
     });
 
-    it('POST & DELETE /profiles/:username/follow should be idempotent', async () => {
-      const follow1 = await request(app.getHttpServer())
-        .post(`/profiles/${userB.username}/follow`)
+    it('should reject duplicate username (409) and invalid image URL (400)', async () => {
+      await request(app.getHttpServer())
+        .patch('/users/me')
         .set('Authorization', `Bearer ${tokenA}`)
-        .expect(200);
-      expect(
-        (follow1.body as { profile: { following: boolean } }).profile.following,
-      ).toBe(true);
+        .send({ username: userB.username })
+        .expect(409);
 
-      const follow2 = await request(app.getHttpServer())
-        .post(`/profiles/${userB.username}/follow`)
+      await request(app.getHttpServer())
+        .patch('/users/me')
         .set('Authorization', `Bearer ${tokenA}`)
-        .expect(200);
-      expect(
-        (follow2.body as { profile: { following: boolean } }).profile.following,
-      ).toBe(true);
-
-      const getAsA = await request(app.getHttpServer())
-        .get(`/profiles/${userB.username}`)
-        .set('Authorization', `Bearer ${tokenA}`)
-        .expect(200);
-      expect(
-        (getAsA.body as { profile: { following: boolean } }).profile.following,
-      ).toBe(true);
-
-      const getAsB = await request(app.getHttpServer())
-        .get(`/profiles/${userA.username}`)
-        .set('Authorization', `Bearer ${tokenB}`)
-        .expect(200);
-      expect(
-        (getAsB.body as { profile: { following: boolean } }).profile.following,
-      ).toBe(false);
-
-      const unfollow1 = await request(app.getHttpServer())
-        .delete(`/profiles/${userB.username}/follow`)
-        .set('Authorization', `Bearer ${tokenA}`)
-        .expect(200);
-      expect(
-        (unfollow1.body as { profile: { following: boolean } }).profile
-          .following,
-      ).toBe(false);
-
-      const unfollow2 = await request(app.getHttpServer())
-        .delete(`/profiles/${userB.username}/follow`)
-        .set('Authorization', `Bearer ${tokenA}`)
-        .expect(200);
-      expect(
-        (unfollow2.body as { profile: { following: boolean } }).profile
-          .following,
-      ).toBe(false);
+        .send({ image: 'not-a-valid-url' })
+        .expect(400);
     });
   });
 });

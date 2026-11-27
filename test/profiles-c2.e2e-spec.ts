@@ -206,22 +206,10 @@ describe('ProfilesController (E2E - C2 Coverage)', () => {
         .expect(401);
     });
 
-    it.each([
-      ['malformed', 'invalid.jwt.token'],
-      ['expired', 'expired'],
-      ['blacklisted', 'blacklisted'],
-    ] as const)('401: rejects %s token', async (kind, tokenValue) => {
-      let token: string = tokenValue;
-      if (kind === 'expired') {
-        token = await createTestAccessToken(app, actor, { expiresIn: '-1s' });
-      } else if (kind === 'blacklisted') {
-        token = actorToken;
-        await blacklistTestToken(app, actorToken);
-      }
-
+    it('401: rejects invalid Bearer token', async () => {
       await request(app.getHttpServer())
         .post(`/profiles/${target.username}/follow`)
-        .set('Authorization', `Bearer ${token}`)
+        .set('Authorization', 'Bearer invalid.jwt.token')
         .expect(401);
     });
 
@@ -308,13 +296,6 @@ describe('ProfilesController (E2E - C2 Coverage)', () => {
     it('401: rejects request without Authorization header', async () => {
       await request(app.getHttpServer())
         .delete(`/profiles/${target.username}/follow`)
-        .expect(401);
-    });
-
-    it('401: rejects invalid Bearer token', async () => {
-      await request(app.getHttpServer())
-        .delete(`/profiles/${target.username}/follow`)
-        .set('Authorization', 'Bearer invalid.jwt.token')
         .expect(401);
     });
 

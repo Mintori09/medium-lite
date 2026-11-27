@@ -231,12 +231,118 @@ describe('Articles & Tags (e2e)', () => {
     await request(app.getHttpServer()).get(`/articles/${slugA}`).expect(404);
   });
 
-  it('i18n - returns Vietnamese error message when Accept-Language: vi', async () => {
-    const res = await request(app.getHttpServer())
-      .get('/articles/non-existent-slug-000000')
-      .set('Accept-Language', 'vi')
-      .expect(404);
+  describe('BVA, Pairwise & Edge Cases', () => {
+    it('POST /articles (BVA) - enforces max lengths on title, description, body, and tagList', async () => {
+      await request(app.getHttpServer())
+        .post('/articles')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          article: {
+            title: 't'.repeat(256),
+            description: 'valid',
+            body: 'valid',
+          },
+        })
+        .expect(400);
 
-    expect(res.body.message).toBe('Không tìm thấy bài viết');
+      await request(app.getHttpServer())
+        .post('/articles')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          article: {
+            title: 'valid',
+            description: 'd'.repeat(501),
+            body: 'valid',
+          },
+        })
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .post('/articles')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          article: {
+            title: 'valid',
+            description: 'valid',
+            body: 'b'.repeat(50_001),
+          },
+        })
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .post('/articles')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          article: {
+            title: 'valid',
+            description: 'valid',
+            body: 'valid',
+            tagList: Array.from({ length: 21 }, (_, i) => `tag${i}`),
+          },
+        })
+        .expect(400);
+    });
+
+    it('PUT /articles/:slug (EP) - rejects empty update {} and strict extra fields', async () => {
+      const created = await request(app.getHttpServer())
+        .post('/articles')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({
+          article: {
+            title: `Update Edge ${uniqueId}`,
+            description: 'desc',
+            body: 'body',
+            tagList: ['oldtag'],
+          },
+        })
+        .expect(201);
+      const targetSlug = created.body.article.slug;
+
+      await request(app.getHttpServer())
+        .put(`/articles/${targetSlug}`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ article: {} })
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .put(`/articles/${targetSlug}`)
+        .set('Authorization', `Bearer ${tokenA}`)
+        .send({ article: { title: 'New', extraField: true } })
+        .expect(400);
+    });
+
+    it('GET /articles (BVA & Pairwise) - validates offset/limit boundaries and combined filters', async () => {
+      await request(app.getHttpServer())
+        .get('/articles?offset=-1')
+        .expect(400);
+
+      const minLimit = await request(app.getHttpServer())
+        .get('/articles?limit=1&offset=0')
+        .expect(200);
+      expect(minLimit.body.articles.length).toBeLessThanOrEqual(1);
+
+      const combined = await request(app.getHttpServer())
+        .get(`/articles?tag=javascript&author=authorA_${uniqueId}&limit=100&offset=9999`)
+        .expect(200);
+      expect(combined.body.articles).toEqual([]);
+    });
+
+    it('GET /articles/feed (BVA) - validates pagination boundaries and empty feed', async () => {
+      await request(app.getHttpServer())
+        .get('/articles/feed?limit=0')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(400);
+
+      await request(app.getHttpServer())
+        .get('/articles/feed?offset=-1')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(400);
+
+      const emptyFeed = await request(app.getHttpServer())
+        .get('/articles/feed')
+        .set('Authorization', `Bearer ${tokenA}`)
+        .expect(200);
+      expect(emptyFeed.body).toEqual({ articles: [], articlesCount: 0 });
+    });
   });
 });

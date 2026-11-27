@@ -1,11 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import cookieParser from 'cookie-parser';
 import request from 'supertest';
 import { App } from 'supertest/types.js';
-import { AppModule } from './../src/app.module.js';
 import { env } from '../src/common/configs/env.config.js';
+import { createE2EApp } from './helpers/e2e-app.helper.js';
 import { getI18n } from './helpers/i18n-test.helper.js';
 
 describe('Auth System (e2e)', () => {
@@ -22,17 +20,13 @@ describe('Auth System (e2e)', () => {
   let refreshToken = '';
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AppModule],
-    }).compile();
-
-    app = moduleFixture.createNestApplication();
-    app.use(cookieParser());
-    await app.init();
+    app = await createE2EApp();
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 
   it('/auth/register (POST) - should reject invalid password (strength rules)', async () => {
@@ -232,6 +226,53 @@ describe('Auth System (e2e)', () => {
       .expect(401);
 
     expect(resVi.body.message).toBe(getI18n('vi', 'auth.TOKEN_EXPIRED'));
+  });
+
+  it('/auth/login (POST - EP) - rejects wrong password or unknown email with 401', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: `nonexistent_${Date.now()}@example.com`,
+        password: 'Password123!',
+      })
+      .expect(401);
+  });
+
+  it('/auth/refresh (POST - State Transition) - rejects replay of rotated refresh token and empty token', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: '' })
+      .expect(401);
+
+    const replayEmail = `replay_${Date.now()}@example.com`;
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        email: replayEmail,
+        username: `replay_${Date.now()}`,
+        password: 'Password123!',
+      })
+      .expect(201);
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({
+        email: replayEmail,
+        password: 'Password123!',
+      })
+      .expect(200);
+
+    const oldRefreshToken = loginRes.body.refreshToken;
+
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: oldRefreshToken })
+      .expect(200);
+
+    await request(app.getHttpServer())
+      .post('/auth/refresh')
+      .send({ refreshToken: oldRefreshToken })
+      .expect(401);
   });
 
   it('/auth/login (POST) - should block brute force attempts with 429 Too Many Requests', async () => {
